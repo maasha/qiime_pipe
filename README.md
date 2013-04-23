@@ -3,7 +3,7 @@ qiime_pipe
 
 Ruby script to execute all commands in the QIIME overview tutorial, but including denoising and chimera check.
 
-
+```
 Usage: qiime_pipe.rb [options]
     -h, --help                       Display this screen
     -s, --file_sff <file>            SFF file to process
@@ -16,3 +16,4 @@ Usage: qiime_pipe.rb [options]
     -b, --barcode_size <int>         Size of barcodes used (10)
     -C, --cpus <int>                 Number of CPUs to use (1)
     -e, --email <string>             Send email alert
+```
