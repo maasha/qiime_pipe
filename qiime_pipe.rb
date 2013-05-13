@@ -88,23 +88,17 @@ class Qiime
   end
 
   def dir_create
-    cmd = "mkdir #{@options[:dir_out]}"
-
-    run cmd
+    run "mkdir #{@options[:dir_out]}"
   end
 
   def print_qiime_config
     log = "#{@options[:dir_out]}/print_qiime_config.log"
-    cmd = "print_qiime_config.py -t > #{log} 2>&1"
-
-    run cmd
+    run "print_qiime_config.py -t > #{log} 2>&1"
   end
 
   def check_id_map
     dir_out = "#{@options[:dir_out]}/mapping_output"
-    cmd     = "check_id_map.py -m #{@options[:file_map]} -o #{dir_out} > /dev/null"
-
-    run cmd
+    run "check_id_map.py -m #{@options[:file_map]} -o #{dir_out} > /dev/null"
   end
 
   def process_sff
@@ -114,17 +108,11 @@ class Qiime
     file_qual    = "#{@options[:dir_out]}/#{base}.qual"
 
     if @options[:denoise]
-      cmd1 = "sffinfo #{@options[:file_sff]} > #{file_sff_txt}"
-      cmd2 = "sffinfo -s #{@options[:file_sff]} > #{file_fasta}"
-      cmd3 = "sffinfo -q #{@options[:file_sff]} > #{file_qual}"
-
-      run cmd1
-      run cmd2
-      run cmd3
+      run "sffinfo #{@options[:file_sff]} > #{file_sff_txt}"
+      run "sffinfo -s #{@options[:file_sff]} > #{file_fasta}"
+      run "sffinfo -q #{@options[:file_sff]} > #{file_qual}"
     else
-      cmd = "process_sff.py -i #{@options[:file_sff]} -o #{@options[:dir_out]}"
-
-      run cmd
+      run "process_sff.py -i #{@options[:file_sff]} -o #{@options[:dir_out]}"
     end
   end
 
@@ -133,9 +121,7 @@ class Qiime
     base       = File.basename(@options[:file_sff], ".sff")
     file_fasta = "#{@options[:dir_out]}/#{base}.fna"
     file_qual  = "#{@options[:dir_out]}/#{base}.qual"
-    cmd        = "split_libraries.py -b #{@options[:barcode_size]} -m #{@options[:file_map]} -f #{file_fasta} -q #{file_qual} -o #{dir_out}"
-
-    run cmd
+    run "split_libraries.py -b #{@options[:barcode_size]} -m #{@options[:file_map]} -f #{file_fasta} -q #{file_qual} -o #{dir_out}"
   end
 
   def denoise_wrapper
@@ -143,9 +129,7 @@ class Qiime
     base         = File.basename(@options[:file_sff], ".sff")
     file_sff_txt = "#{@options[:dir_out]}/#{base}.sff.txt"
     file_fasta   = "#{@options[:dir_out]}/split_library_output/seqs.fna"
-    cmd          = "denoise_wrapper.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_out} -m #{@options[:file_map]} -n #{@options[:cpus]} --force_overwrite"
-
-    run cmd
+    run "denoise_wrapper.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_out} -m #{@options[:file_map]} -n #{@options[:cpus]} --force_overwrite"
   end
 
   def inflate_denoiser_output
@@ -154,9 +138,7 @@ class Qiime
     file_fasta      = "#{@options[:dir_out]}/split_library_output/seqs.fna"
     file_map        = "#{@options[:dir_out]}/denoised/denoiser_mapping.txt"
     file_out        = "#{@options[:dir_out]}/denoised/inflated.fna"
-    cmd             = "inflate_denoiser_output.py -c #{file_centroids} -s #{file_singletons} -f #{file_fasta} -d #{file_map} -o #{file_out}"
-
-    run cmd
+    run "inflate_denoiser_output.py -c #{file_centroids} -s #{file_singletons} -f #{file_fasta} -d #{file_map} -o #{file_out}"
   end
 
   def chimera_check
@@ -172,9 +154,7 @@ class Qiime
     file_chimeras    = "#{@options[:dir_out]}/chimera/chimeras.fasta"
     file_nonchimeras = "#{@options[:dir_out]}/chimera/nonchimeras.fasta"
 
-    cmd = "usearch -quiet -uchime #{file_fasta} -db #{file_ref} -chimeras #{file_chimeras} -nonchimeras #{file_nonchimeras}"
-
-    run cmd
+    run "usearch -quiet -uchime #{file_fasta} -db #{file_ref} -chimeras #{file_chimeras} -nonchimeras #{file_nonchimeras}"
   end
 
   def pick_otus_through_otu_table
@@ -189,17 +169,13 @@ class Qiime
     end
 
     dir_out = "#{@options[:dir_out]}/otus"
-    cmd     = "pick_otus_through_otu_table.py -i #{file_fasta} -o #{dir_out} -a -f"
-
-    run cmd
+    run "pick_otus_through_otu_table.py -i #{file_fasta} -o #{dir_out} -a -f"
   end
 
   def per_library_stats
     file_biom  = "#{@options[:dir_out]}/otus/otu_table.biom"
     file_stats = "#{file_biom}.stats"
-    cmd        = "per_library_stats.py -i #{file_biom} > #{file_stats}"
-
-    run cmd
+    run "per_library_stats.py -i #{file_biom} > #{file_stats}"
 
     File.open(file_stats, 'r') do |ios|
       ios.each_line do |line|
@@ -221,26 +197,20 @@ class Qiime
   def make_otu_heatmap_html
     file_biom = "#{@options[:dir_out]}/otus/otu_table.biom"
     dir_out   = "#{@options[:dir_out]}/otus/OTU_Heatmap"
-    cmd       = "make_otu_heatmap_html.py -i #{file_biom} -o #{dir_out}"
-
-    run cmd
+    run "make_otu_heatmap_html.py -i #{file_biom} -o #{dir_out}"
   end
 
   def make_otu_network
     file_biom = "#{@options[:dir_out]}/otus/otu_table.biom"
     dir_out   = "#{@options[:dir_out]}/otus/OTU_Network"
-    cmd       = "make_otu_network.py -m #{@options[:file_map]} -i #{file_biom} -o #{dir_out}"
-
-    run cmd
+    run "make_otu_network.py -m #{@options[:file_map]} -i #{file_biom} -o #{dir_out}"
   end
 
   # TODO consider adding  -c Description
   def wf_taxa_summary
     file_biom = "#{@options[:dir_out]}/otus/otu_table.biom"
     dir_out   = "#{@options[:dir_out]}/wf_taxa_summary"
-    cmd       = "summarize_taxa_through_plots.py -i #{file_biom} -o #{dir_out} -m #{@options[:file_map]}"
-
-    run cmd
+    run "summarize_taxa_through_plots.py -i #{file_biom} -o #{dir_out} -m #{@options[:file_map]} -f"
   end
 
   def alpha_diversity
@@ -248,22 +218,19 @@ class Qiime
     file_tree   = "#{@options[:dir_out]}/otus/rep_set.tre"
     file_params = "#{@options[:dir_out]}/alpha_params.txt"
     dir_out     = "#{@options[:dir_out]}/wf_arare"
-    cmd         = "alpha_rarefaction.py -i #{file_biom} -m #{@options[:file_map]} -o #{dir_out} -p #{file_params} -t #{file_tree} -a"
 
     File.open(file_params, 'w') do |ios|
       ios.puts "alpha_diversity:metrics shannon,PD_whole_tree,chao1,observed_species"
     end
 
-    run cmd
+    run "alpha_rarefaction.py -i #{file_biom} -m #{@options[:file_map]} -o #{dir_out} -p #{file_params} -t #{file_tree} -a -f"
   end
 
   def beta_diversity_through_plots
     file_biom = "#{@options[:dir_out]}/otus/otu_table.biom"
     file_tree = "#{@options[:dir_out]}/otus/rep_set.tre"
     dir_out   = "#{@options[:dir_out]}/wf_bdiv_even"
-    cmd       = "beta_diversity_through_plots.py -i #{file_biom} -m #{@options[:file_map]} -o #{dir_out} -t #{file_tree} -e #{@min_samples} -a"
-
-    run cmd
+    run "beta_diversity_through_plots.py -i #{file_biom} -m #{@options[:file_map]} -o #{dir_out} -t #{file_tree} -e #{@min_samples} -a"
   end
 
   def jackknifed_beta_diversity
@@ -271,27 +238,21 @@ class Qiime
     file_tree = "#{@options[:dir_out]}/otus/rep_set.tre"
     dir_out   = "#{@options[:dir_out]}/wf_jack"
     samples   = (@min_samples * 0.75).to_i
-    cmd       = "jackknifed_beta_diversity.py -i #{file_biom} -t #{file_tree} -m #{@options[:file_map]} -o #{dir_out} -e #{samples} -a"
-
-    run cmd
+    run "jackknifed_beta_diversity.py -i #{file_biom} -t #{file_tree} -m #{@options[:file_map]} -o #{dir_out} -e #{samples} -a"
   end
 
   def make_bootstrapped_tree
     file_tree = "#{@options[:dir_out]}/wf_jack/unweighted_unifrac/upgma_cmp/master_tree.tre"
     file_sup  = "#{@options[:dir_out]}/wf_jack/unweighted_unifrac/upgma_cmp/jackknife_support.txt"
     file_out  = "#{@options[:dir_out]}/wf_jack/unweighted_unifrac/upgma_cmp/jackknife_named_nodes.pdf"
-    cmd       = "make_bootstrapped_tree.py -m #{file_tree} -s #{file_sup} -o #{file_out}"
-
-    run cmd
+    run "make_bootstrapped_tree.py -m #{file_tree} -s #{file_sup} -o #{file_out}"
   end
 
   def make_3d_plots
     file_weight = "#{@options[:dir_out]}/wf_bdiv_even/unweighted_unifrac_pc.txt"
     file_table  = "#{@options[:dir_out]}/wf_taxa_summary/otu_table_L3.txt"
     dir_out     = "#{@options[:dir_out]}/3d_biplot"
-    cmd         = "make_3d_plots.py -i #{file_weight} -m #{@options[:file_map]} -t #{file_table} --n_taxa_keep 5 -o #{dir_out}"
-
-    run cmd
+    run "make_3d_plots.py -i #{file_weight} -m #{@options[:file_map]} -t #{file_table} --n_taxa_keep 5 -o #{dir_out}"
   end
 
   def send_mail(subject)
