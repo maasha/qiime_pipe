@@ -16,12 +16,12 @@ OptionParser.new do |opts|
     exit
   end
 
-  opts.on("-s", "--file_sff <file>", String, "SFF file to process") do |o|
-    options[:file_sff] = o
+  opts.on("-m", "--mapping_files <files>", String, "Mapping file to process") do |o|
+    options[:mapping_files] = o
   end
 
-  opts.on("-m", "--file_map <file>", String, "Mapping file to process") do |o|
-    options[:file_map] = o
+  opts.on("-m", "--fasta_files <files>", String, "Post split_library FASTA files") do |o|
+    options[:mapping_files] = o
   end
 
   opts.on("-o", "--dir_out <dir>", String, "Output directory") do |o|
@@ -32,22 +32,13 @@ OptionParser.new do |opts|
     options[:force] = o
   end
 
-  opts.on("-d", "--denoise", "Denoise data") do |o|
-    options[:denoise] = o
-  end
-
   opts.on("-c", "--chimera", "Chimera filter data") do |o|
     options[:chimera] = o
   end
 
   options[:chimera_db] = Qiime::DEFAULT_CHIMERA_DB
-  opts.on("-D", "--chimera_db <file>", String, "Chimere database (#{Qiime::DEFAULT_CHIMERA_DB})") do |o|
+  opts.on("-D", "--chimera_db <file>", String, "Chimera database (#{Qiime::DEFAULT_CHIMERA_DB})") do |o|
     options[:chimera_db] = o || Qiime::DEFAULT_CHIMERA_DB
-  end
-
-  options[:barcode_size] = Qiime::DEFAULT_BARCODE_SIZE
-  opts.on("-b", "--barcode_size <int>", Integer, "Size of barcodes used (#{Qiime::DEFAULT_BARCODE_SIZE})") do |o|
-    options[:barcode_size] = o
   end
 
   options[:cpus] = Qiime::DEFAULT_CPUS
@@ -66,29 +57,8 @@ raise OptionParser::MissingArgument, "--dir_out"  if options[:dir_out].nil?
 raise OptionParser::InvalidOption,   "no such file: #{options[:file_sff]}" unless File.file?(options[:file_sff])
 raise OptionParser::InvalidOption,   "no such file: #{options[:file_map]}" unless File.file?(options[:file_map])
 
-q = Qiime::Pipeline.new(options)
-q.log_delete                   if options[:force]
-q.dir_delete                   if options[:force]
-q.dir_create
-q.print_qiime_config
-q.check_id_map
-q.process_sff
-q.split_libraries
-q.denoise_wrapper              if options[:denoise]
-q.inflate_denoiser_output      if options[:denoise]
-q.chimera_check                if options[:chimera]
-q.pick_otus_through_otu_table
-q.per_library_stats
-q.make_otu_heatmap_html
-q.make_otu_network
-q.wf_taxa_summary
-q.alpha_diversity
-q.beta_diversity_through_plots
-q.jackknifed_beta_diversity
-q.make_bootstrapped_tree
-q.make_3d_plots
-q.send_mail("Finished: " + File.basename(options[:file_sff])) if options[:email]
+m = Qiime::MapFile.new
+m.parse_mapping_file(ARGV[0])
+m.merge_mapping_file(ARGV[1])
 
-puts "All done."
-
-END { q.send_mail("Interrupted") if options[:email] }
+puts m
