@@ -169,7 +169,7 @@ class Qiime
     end
 
     dir_out = "#{@options[:dir_out]}/otus"
-    run "pick_otus_through_otu_table.py -i #{file_fasta} -o #{dir_out} -a -f"
+    run "pick_otus_through_otu_table.py -i #{file_fasta} -o #{dir_out} -a -O #{@options[:cpus]} -f"
   end
 
   def per_library_stats
@@ -261,6 +261,8 @@ class Qiime
     system(cmd)
 
     raise "Command: #{cmd} failed." unless $?.success?
+
+    @options[:email] = nil
   end
 
   private
@@ -341,3 +343,4 @@ q.send_mail("Finished: " + File.basename(options[:file_sff])) if options[:email]
 
 puts "All done."
 
+END { q.send_mail("Interrupted") if options[:email] }
