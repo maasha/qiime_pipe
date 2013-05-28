@@ -16,53 +16,33 @@ OptionParser.new do |opts|
     exit
   end
 
-  opts.on("-m", "--mapping_files <files>", Array, "Mapping file to process") do |o|
-    options[:mapping_files] = o
-  end
-
-  opts.on("-f", "--fasta_files <files>", Array, "Post split_library FASTA files") do |o|
+  opts.on("-f", "--fasta_files <files>", Array, "Fasta files to merge") do |o|
     options[:fasta_files] = o
   end
 
-  opts.on("-o", "--dir_out <dir>", String, "Output directory") do |o|
-    options[:dir_out] = o
-  end
-
-  opts.on("--force", "Force overwrite log file and output directory") do |o|
-    options[:force] = o
-  end
-
-  opts.on("-c", "--chimera", "Chimera filter data") do |o|
-    options[:chimera] = o
-  end
-
-  options[:chimera_db] = Qiime::DEFAULT_CHIMERA_DB
-  opts.on("-D", "--chimera_db <file>", String, "Chimera database (#{Qiime::DEFAULT_CHIMERA_DB})") do |o|
-    options[:chimera_db] = o || Qiime::DEFAULT_CHIMERA_DB
-  end
-
-  options[:cpus] = Qiime::DEFAULT_CPUS
-  opts.on("-C", "--cpus <int>", Integer, "Number of CPUs to use (#{Qiime::DEFAULT_CPUS})") do |o|
-    options[:cpus] = o
-  end
-
-  opts.on("-e", "--email <string>", String, "Send email alert") do |o| 
-    options[:email] = o
+  opts.on("-o", "--output_file <file>", String, "Output file") do |o|
+    options[:output_file] = o
   end
 end.parse!
 
-raise OptionParser::MissingArgument, "--mapping_files" if options[:mapping_files].nil?
-raise OptionParser::MissingArgument, "--fasta_files"   if options[:fasta_files].nil?
-raise OptionParser::MissingArgument, "--dir_out"       if options[:dir_out].nil?
-raise OptionParser::InvalidOption, "Only 1 mapping file specified" if options[:mapping_files].size == 1
-raise OptionParser::InvalidOption, "Only 1 fasta   file specified" if options[:fasta_files].size   == 1
-raise OptionParser::InvalidOption, "Number of mapping and fasta files don't match" if options[:mapping_files].size != options[:fasta_files].size
+raise OptionParser::MissingArgument, "--fasta_files" if options[:fasta_files].nil?
+raise OptionParser::MissingArgument, "--output_file" if options[:output_file].nil?
+raise OptionParser::InvalidOption, "Only 1 fasta file specified" if options[:fasta_files].size == 1
 
-q = Qiime::Pipeline.new(options)
-q.log_delete                   if options[:force]
-q.dir_delete                   if options[:force]
-q.dir_create
-q.print_qiime_config
-q.merge_id_maps
-q.check_id_map
-q.merge_fasta_files
+file_count = 0
+
+File.open(options[:output_file], 'w') do |o|
+  options[:fasta_files].each do |file|
+    raise OptionParser::InvalidOption, "no such file: #{file}" unless File.file?(file)
+
+    File.open(file, 'r') do |i|
+      i.each do |line|
+        line = ">" + file_count.to_s + line[1 .. -1] if line[0] == '>'
+        o.puts line
+      end
+    end
+
+    file_count += 1
+  end
+end
+

@@ -32,17 +32,8 @@ OptionParser.new do |opts|
     options[:force] = o
   end
 
-  opts.on("-c", "--chimera", "Chimera filter data") do |o|
-    options[:chimera] = o
-  end
-
-  options[:chimera_db] = Qiime::DEFAULT_CHIMERA_DB
-  opts.on("-D", "--chimera_db <file>", String, "Chimera database (#{Qiime::DEFAULT_CHIMERA_DB})") do |o|
-    options[:chimera_db] = o || Qiime::DEFAULT_CHIMERA_DB
-  end
-
   options[:cpus] = Qiime::DEFAULT_CPUS
-  opts.on("-C", "--cpus <int>", Integer, "Number of CPUs to use (#{Qiime::DEFAULT_CPUS})") do |o|
+  opts.on("-c", "--cpus <int>", Integer, "Number of CPUs to use (#{Qiime::DEFAULT_CPUS})") do |o|
     options[:cpus] = o
   end
 
@@ -66,3 +57,18 @@ q.print_qiime_config
 q.merge_id_maps
 q.check_id_map
 q.merge_fasta_files
+q.pick_otus_through_otu_table
+q.per_library_stats
+q.make_otu_heatmap_html
+q.make_otu_network
+q.wf_taxa_summary
+q.alpha_diversity
+q.beta_diversity_through_plots
+q.jackknifed_beta_diversity
+q.make_bootstrapped_tree
+q.make_3d_plots
+q.send_mail("Finished: " + File.basename(options[:file_sff])) if options[:email]
+
+puts "All done."
+
+END { q.send_mail("Interrupted") if options[:email] }

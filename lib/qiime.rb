@@ -96,37 +96,18 @@ module Qiime
     end
 
     def merge_id_maps
-      mapping_files = @options[:mapping_files].join(",")
-      output_file   = "#{@options[:dir_out]}/merged.map"
+      mapping_files       = @options[:mapping_files].join(",")
+      output_file         = "#{@options[:dir_out]}/merged.map"
+      @options[:file_map] = output_file
       run "qiime_merge_mapping_files.rb -m #{mapping_files} -o #{output_file}"
     end
 
     def merge_fasta_files
-      puts "Merging: FASTA files ... "
-      log "INIT", "Merging: FASTA files"
+      fasta_files      = @options[:fasta_files].join(",")
+      output_file      = "#{@options[:dir_out]}/merged.fasta"
+      @options[:merge] = output_file
 
-      file_fasta = "#{@options[:dir_out]}/merged.fasta"
-      file_count = 0
-     
-      File.open(file_fasta, 'w') do |o|
-        @options[:fasta_files].each do |file|
-          raise OptionParser::InvalidOption, "no such file: #{file}" unless File.file?(file)
-
-          puts "   #{file}"
-
-          File.open(file, 'r') do |i|
-            i.each do |line|
-              line = ">" + file_count.to_s + line[1 .. -1] if line[0] == '>'
-              o.puts line
-            end
-          end
-
-          file_count += 1
-        end
-      end
-
-      puts "OK"
-      log "OK", "Merging: FASTA files"
+      run "qiime_merge_fasta_files.rb -f #{fasta_files} -o #{output_file}"
     end
 
     def check_id_map
@@ -191,7 +172,7 @@ module Qiime
     end
 
     def pick_otus_through_otu_table
-      if @options[:fasta_files]   # merging datasets
+      if @options[:merge]   # merging datasets
         file_fasta = "#{@options[:dir_out]}/merged.fasta"
       elsif @options[:chimera]
         file_fasta = "#{@options[:dir_out]}/chimera/nonchimeras.fasta"
