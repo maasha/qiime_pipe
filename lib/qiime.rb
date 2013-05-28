@@ -7,64 +7,65 @@ module Qiime
 
   class MapFile
     def initialize
-      @mapping_table = []
-      @count         = 0
+      @mapping_header = []
+      @mapping_table  = []
+      @file_count     = 0
     end
 
-    # Method to parse a QIIME mapping file. The first line starting with '#' is
-    # kept as the header while the remaing are skipped.
-    def parse_mapping_file(file)
+    # Method to parse and add a QIIME mapping file to the mapping table.
+    def <<(file)
       got_header = false
 
       File.open(file, 'r') do |ios|
         ios.each do |line|
           if line[0] == '#'
-            next if got_header
+            if line =~ /^#SampleID/
+              got_header = true
 
-            raise QiimeError "Mapping file must start with '#SampleID'" unless line =~ /^#SampleID/
+              check_header(line)
 
-            got_header = true
-          end
-
-          @mapping_table << line.chomp.split("\t")
-        end
-      end
-    end
-
-    # Method to merge a QIIME mapping file into existing mapping table to
-    # @mapping_table. 
-    def merge_mapping_file(file)
-      got_header = false
-
-      File.open(file, 'r') do |ios|
-        ios.each do |line|
-          if line[0] == '#'
-            next if got_header
-
-            raise QiimeError "Mapping file must start with '#SampleID'" unless line =~ /^#SampleID/
-
-            cols1 = @mapping_table.first.size
-            cols2 = line.chomp.split("\t").size
-            
-            raise QiimeError "Column count differ between mapping files: #{cols1} != #{cols2}" if cols1 != cols2
-
-            got_header = true
+              @mapping_header = line.chomp.split("\t") if @mapping_header.empty?
+            end
           else
-            @mapping_table << line.chomp.split("\t")
+            if got_header
+              @mapping_table << (@file_count.to_s + line.chomp).split("\t")
+            else
+              raise QiimeError, "Mapping file must start with '#SampleID'"
+            end
           end
         end
       end
+
+      @file_count += 1
     end
 
     # Method to convert a QIIME mapping table to a string.
     def to_s
-      table = ""
+      table = @mapping_header.join("\t") + $/
 
       @mapping_table.each do |row|
         table << row.join("\t") + $/
       end
 
       table.chomp
+    end
+
+    private
+
+    def check_header(line)
+      unless @mapping_header.empty?
+        fields = line.chomp.split("\t")
+
+        unless fields.size == @mapping_header.size
+          raise QiimeError, "Mapping file column count mismatch"
+        end
+
+        line.chomp.split("\t").each_with_index do |field, i|
+          unless field == @mapping_header[i]
+            raise QiimeError, "Mapping file fields name mismatch: #{field} != #{@mapping_header[i]}"
+          end
+        end
+      end
     end
   end
 
@@ -92,6 +93,40 @@ module Qiime
     def print_qiime_config
       log = "#{@options[:dir_out]}/print_qiime_config.log"
       run "print_qiime_config.py -t > #{log} 2>&1"
+    end
+
+    def merge_id_maps
+      mapping_files = @options[:mapping_files].join(",")
+      output_file   = "#{@options[:dir_out]}/merged.map"
+      run "qiime_merge_mapping_files.rb -m #{mapping_files} -o #{output_file}"
+    end
+
+    def merge_fasta_files
+      puts "Merging: FASTA files ... "
+      log "INIT", "Merging: FASTA files"
+
+      file_fasta = "#{@options[:dir_out]}/merged.fasta"
+      file_count = 0
+     
+      File.open(file_fasta, 'w') do |o|
+        @options[:fasta_files].each do |file|
+          raise OptionParser::InvalidOption, "no such file: #{file}" unless File.file?(file)
+
+          puts "   #{file}"
+
+          File.open(file, 'r') do |i|
+            i.each do |line|
+              line = ">" + file_count.to_s + line[1 .. -1] if line[0] == '>'
+              o.puts line
+            end
+          end
+
+          file_count += 1
+        end
+      end
+
+      puts "OK"
+      log "OK", "Merging: FASTA files"
     end
 
     def check_id_map
@@ -156,7 +191,9 @@ module Qiime
     end
 
     def pick_otus_through_otu_table
-      if @options[:chimera]
+      if @options[:fasta_files]   # merging datasets
+        file_fasta = "#{@options[:dir_out]}/merged.fasta"
+      elsif @options[:chimera]
         file_fasta = "#{@options[:dir_out]}/chimera/nonchimeras.fasta"
       else
         if @options[:denoise]
@@ -188,7 +225,7 @@ module Qiime
       if @min_samples == 0
         error = "Fail: Failed to parse min samples."
         self.send_mail(error) if @options[:email]
-        raise error
+        raise QiimeError, error
       end
     end
 
@@ -258,7 +295,7 @@ module Qiime
 
       system(cmd)
 
-      raise "Command: #{cmd} failed." unless $?.success?
+      raise QiimeError, "Command: #{cmd} failed." unless $?.success?
 
       @options[:email] = nil
     end
@@ -284,7 +321,7 @@ module Qiime
 
           self.send_mail("Fail: " + File.basename(@options[:file_sff])) if @options[:email]
 
-          raise "FAIL"
+          raise QiimeError, "FAIL"
         end
       end
     end
