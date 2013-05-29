@@ -40,6 +40,10 @@ OptionParser.new do |opts|
     options[:chimera] = o
   end
 
+  opts.on("-M", "--catagory <string>", String, "Mapping catagory (mapping file column label") do |o| 
+    options[:catagory] = o
+  end
+
   options[:chimera_db] = Qiime::DEFAULT_CHIMERA_DB
   opts.on("-D", "--chimera_db <file>", String, "Chimere database (#{Qiime::DEFAULT_CHIMERA_DB})") do |o|
     options[:chimera_db] = o || Qiime::DEFAULT_CHIMERA_DB
