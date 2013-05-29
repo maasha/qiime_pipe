@@ -222,11 +222,15 @@ module Qiime
       run "make_otu_network.py -m #{@options[:file_map]} -i #{file_biom} -o #{dir_out}"
     end
 
-    # TODO consider adding  -c Description
     def wf_taxa_summary
       file_biom = "#{@options[:dir_out]}/otus/otu_table.biom"
       dir_out   = "#{@options[:dir_out]}/wf_taxa_summary"
-      run "summarize_taxa_through_plots.py -i #{file_biom} -o #{dir_out} -m #{@options[:file_map]} -f"
+
+      if @options[:catagory]
+        run "summarize_taxa_through_plots.py -i #{file_biom} -o #{dir_out} -m #{@options[:file_map]} -c #{@options[:catagory]} -f"
+      else
+        run "summarize_taxa_through_plots.py -i #{file_biom} -o #{dir_out} -m #{@options[:file_map]} -f"
+      end
     end
 
     def alpha_diversity
@@ -266,8 +270,14 @@ module Qiime
 
     def make_3d_plots
       file_weight = "#{@options[:dir_out]}/wf_bdiv_even/unweighted_unifrac_pc.txt"
-      file_table  = "#{@options[:dir_out]}/wf_taxa_summary/otu_table_L3.txt"
       dir_out     = "#{@options[:dir_out]}/3d_biplot"
+
+      if @options[:catagory]
+        file_table = "#{@options[:dir_out]}/wf_taxa_summary/#{@options[:catagory]}_otu_table_L3.txt"
+      else
+        file_table = "#{@options[:dir_out]}/wf_taxa_summary/otu_table_L3.txt"
+      end
+
       run "make_3d_plots.py -i #{file_weight} -m #{@options[:file_map]} -t #{file_table} --n_taxa_keep 5 -o #{dir_out}"
     end
 

@@ -32,6 +32,10 @@ OptionParser.new do |opts|
     options[:force] = o
   end
 
+  opts.on("-M", "--catagory <string>", String, "Mapping catagory (mapping file column label") do |o| 
+    options[:catagory] = o
+  end
+
   options[:cpus] = Qiime::DEFAULT_CPUS
   opts.on("-c", "--cpus <int>", Integer, "Number of CPUs to use (#{Qiime::DEFAULT_CPUS})") do |o|
     options[:cpus] = o
@@ -67,7 +71,7 @@ q.beta_diversity_through_plots
 q.jackknifed_beta_diversity
 q.make_bootstrapped_tree
 q.make_3d_plots
-q.send_mail("Finished: " + File.basename(options[:file_sff])) if options[:email]
+q.send_mail("Finished merging datasets") if options[:email]
 
 puts "All done."
 
