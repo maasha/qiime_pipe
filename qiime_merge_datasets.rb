@@ -20,7 +20,7 @@ OptionParser.new do |opts|
     options[:mapping_files] = o
   end
 
-  opts.on("-f", "--fasta_files <files>", Array, "Post split_library FASTA files") do |o|
+  opts.on("-f", "--fasta_files <files>", Array, "inflated.fna FASTA files") do |o|
     options[:fasta_files] = o
   end
 
@@ -32,7 +32,7 @@ OptionParser.new do |opts|
     options[:force] = o
   end
 
-  opts.on("-M", "--catagory <string>", String, "Mapping catagory (mapping file column label") do |o| 
+  opts.on("-M", "--catagory <string>", String, "Mapping catagory (mapping file column label)") do |o| 
     options[:catagory] = o
   end
 
@@ -57,7 +57,7 @@ q = Qiime::Pipeline.new(options)
 q.log_delete                   if options[:force]
 q.dir_delete                   if options[:force]
 q.dir_create
-q.print_qiime_config
+#q.print_qiime_config
 q.merge_id_maps
 q.check_id_map
 q.merge_fasta_files
