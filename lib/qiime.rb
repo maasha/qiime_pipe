@@ -80,6 +80,14 @@ module Qiime
       File.delete(@file_log) if File.file? @file_log
     end
 
+    def log_init(cmd_init)
+      unless File.file? @file_log
+        File.open(@file_log, "w") do |ios|
+          ios.puts "#" + cmd_init
+        end
+      end
+    end
+
     def dir_delete
       require 'fileutils'
 
@@ -143,7 +151,26 @@ module Qiime
       base         = File.basename(@options[:file_sff], ".sff")
       file_sff_txt = "#{@options[:dir_out]}/#{base}.sff.txt"
       file_fasta   = "#{@options[:dir_out]}/split_library_output/seqs.fna"
-      run "denoise_wrapper.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_out} -m #{@options[:file_map]} -n #{@options[:cpus]} --force_overwrite"
+
+      cmd = "denoise_wrapper.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_out} -m #{@options[:file_map]} -n #{@options[:cpus]}"
+
+      interrupted? cmd ? self.denoiser : run(cmd)
+    end
+
+    def denoiser
+      dir_out      = "#{@options[:dir_out]}/denoised"
+      dir_resume   = dir_out + "_resumed"
+      base         = File.basename(@options[:file_sff], ".sff")
+      file_sff_txt = "#{@options[:dir_out]}/#{base}.sff.txt"
+      file_fasta   = "#{@options[:dir_out]}/split_library_output/seqs.fna"
+
+      if checkpoint = get_checkpoint(dir_out)
+        run "denoiser.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_resume} -p #{dir_out} --checkpoint #{checkpoint} -n #{@options[:cpus]}"
+        File.rename(dir_out, dir_out + "_bak")
+        File.rename(dir_resume, dir_out)
+      else
+        raise QiimeError, "No checkpoint found"
+      end
     end
 
     def inflate_denoiser_output
@@ -296,7 +323,7 @@ module Qiime
     def run(cmd)
       print "Running: #{cmd} ... "
 
-      if run? cmd
+      if ok? cmd
         puts "SKIPPING"
       else
         log "INIT", cmd
@@ -317,22 +344,38 @@ module Qiime
       end
     end
 
-    def run?(cmd)
+    def ok?(cmd)
+      run_status(cmd) == :OK
+    end
+
+    def interrupted?(cmd)
+      status = run_status(cmd)
+      status == :FAIL or status == :INIT
+    end
+
+    def run_status(cmd)
       if cmd =~ /^sffinfo/   # sffinfo is used multiple times so we use the whole string to check
         cmd_str = cmd
       else
         cmd_str = cmd.split(" ").first
       end
 
+      lines = []
+
       if File.readable? @file_log
         File.open(@file_log, "r") do |ios|
           ios.each_line do |line|
-            return true if line.match(cmd_str) and line =~ /OK$/
+            next if line[0] == '#'
+            lines << line.chomp
           end
         end
       end
 
-      false
+      lines.reverse.each do |line|
+        if line.match(cmd_str)
+          return line.split("\t").last.to_sym
+        end
+      end
     end
 
     def log(status, cmd)
@@ -341,6 +384,19 @@ module Qiime
       File.open(@file_log, "a") do |ios|
         ios.puts [time, cmd, status].join("\t")
       end
+    end
+
+    def get_checkpoint(dir)
+      checkpoints = Dir.glob "#{dir}/checkpoints/*.pickle"
+
+      checkpoints.sort! do |a, b|
+        a_num = a.match('\d+')
+        b_num = b.match('\d+')
+
+        a_num.to_s.to_i <=> b_num.to_s.to_i
+      end
+      
+      checkpoints.last
     end
   end
 end

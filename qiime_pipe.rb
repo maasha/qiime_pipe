@@ -6,6 +6,8 @@ require_relative 'lib/qiime'
 
 ARGV << "-h" if ARGV.empty?
 
+cmd_init = File.basename($0) + " " + ARGV.join(" ")
+
 options = {}
 
 OptionParser.new do |opts|
@@ -72,6 +74,7 @@ raise OptionParser::InvalidOption,   "no such file: #{options[:file_map]}" unles
 
 q = Qiime::Pipeline.new(options)
 q.log_delete                   if options[:force]
+q.log_init(cmd_init)
 q.dir_delete                   if options[:force]
 q.dir_create
 q.print_qiime_config
