@@ -165,7 +165,7 @@ module Qiime
       file_fasta   = "#{@options[:dir_out]}/split_library_output/seqs.fna"
 
       if checkpoint = get_checkpoint(dir_out)
-        run "denoiser.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_resume} -p #{dir_out} --checkpoint #{checkpoint} -n #{@options[:cpus]}"
+        run "denoiser.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_resume} -p #{dir_out} --checkpoint #{checkpoint} -c -n #{@options[:cpus]}"
         File.rename(dir_out, dir_out + "_bak")
         File.rename(dir_resume, dir_out)
       else
@@ -390,10 +390,10 @@ module Qiime
       checkpoints = Dir.glob "#{dir}/checkpoints/*.pickle"
 
       checkpoints.sort! do |a, b|
-        a_num = a.match('\d+')
-        b_num = b.match('\d+')
+        a_num = a.match('(\d+)\.pickle$').to_a.last.to_i
+        b_num = b.match('(\d+)\.pickle$').to_a.last.to_i
 
-        a_num.to_s.to_i <=> b_num.to_s.to_i
+        a_num <=> b_num
       end
       
       checkpoints.last
