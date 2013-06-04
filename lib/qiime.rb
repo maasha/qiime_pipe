@@ -154,7 +154,7 @@ module Qiime
 
       cmd = "denoise_wrapper.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_out} -m #{@options[:file_map]} -n #{@options[:cpus]}"
 
-      interrupted? cmd ? self.denoiser : run(cmd)
+      interrupted?(cmd) ? self.denoiser : run(cmd)
     end
 
     def denoiser
