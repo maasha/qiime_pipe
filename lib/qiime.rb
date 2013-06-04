@@ -350,6 +350,7 @@ module Qiime
 
     def interrupted?(cmd)
       status = run_status(cmd)
+
       status == :FAIL or status == :INIT
     end
 
@@ -376,6 +377,8 @@ module Qiime
           return line.split("\t").last.to_sym
         end
       end
+
+      nil
     end
 
     def log(status, cmd)
