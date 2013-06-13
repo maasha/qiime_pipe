@@ -26,6 +26,10 @@ OptionParser.new do |opts|
     options[:file_map] = o
   end
 
+  opts.on("-r", "--remote_map <key>", String, "Remote mapping file to process") do |o|
+    options[:remote_map] = o
+  end
+
   opts.on("-o", "--dir_out <dir>", String, "Output directory") do |o|
     options[:dir_out] = o
   end
@@ -66,11 +70,17 @@ OptionParser.new do |opts|
   end
 end.parse!
 
+unless options[:file_map] or options[:remote_map]
+  raise OptionParser::MissingArgument, "--file_map or --remote_map"
+end
+
+if options[:file_map] and not File.file? options[:file_map]
+  raise OptionParser::InvalidOption, "no such file: #{options[:file_map]}"
+end
+
 raise OptionParser::MissingArgument, "--file_sff" if options[:file_sff].nil?
-raise OptionParser::MissingArgument, "--file_map" if options[:file_map].nil?
 raise OptionParser::MissingArgument, "--dir_out"  if options[:dir_out].nil?
 raise OptionParser::InvalidOption,   "no such file: #{options[:file_sff]}" unless File.file?(options[:file_sff])
-raise OptionParser::InvalidOption,   "no such file: #{options[:file_map]}" unless File.file?(options[:file_map])
 
 q = Qiime::Pipeline.new(options)
 q.log_delete                   if options[:force]
@@ -78,6 +88,7 @@ q.log_init(cmd_init)
 q.dir_delete                   if options[:force]
 q.dir_create
 q.print_qiime_config
+q.load_remote_mapping_file     if options[:remote_map]
 q.check_id_map
 q.process_sff
 q.split_libraries

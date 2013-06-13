@@ -103,9 +103,15 @@ module Qiime
       run "print_qiime_config.py -t > #{log} 2>&1"
     end
 
+    def load_remote_mapping_file
+      output_file         = "#{@options[:dir_out]}/mapping_file.txt"
+      @options[:file_map] = output_file
+      run "load_remote_mapping_file.py -k #{@options[:remote_map]} -o #{output_file}"
+    end
+
     def merge_id_maps
       mapping_files       = @options[:mapping_files].join(",")
-      output_file         = "#{@options[:dir_out]}/merged.map"
+      output_file         = "#{@options[:dir_out]}/mapping_file_merged.txt"
       @options[:file_map] = output_file
       run "qiime_merge_mapping_files.rb -m #{mapping_files} -o #{output_file}"
     end
