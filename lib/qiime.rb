@@ -126,7 +126,21 @@ module Qiime
 
     def check_id_map
       dir_out = "#{@options[:dir_out]}/mapping_output"
-      run "check_id_map.py -m #{@options[:file_map]} -o #{dir_out} > /dev/null"
+      run "check_id_map.py -m #{@options[:file_map]} -o #{dir_out} -v"
+
+      log_file = File.join(dir_out, File.basename(@options[:file_map], ".txt") + ".log")
+
+      File.open(log_file) do |ios|
+        ios.each do |line|
+          if line.chomp == "No errors or warnings found in mapping file."
+            break
+          else
+            error = "Errors and warnings found in mapping file."
+            self.send_mail(error) if @options[:email]
+            raise QiimeError, error
+          end
+        end
+      end
     end
 
     def process_sff
