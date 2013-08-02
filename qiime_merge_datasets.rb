@@ -60,9 +60,9 @@ q.log_delete                   if options[:force]
 q.log_init(cmd_init)
 q.dir_delete                   if options[:force]
 q.dir_create
-#q.print_qiime_config
+q.print_qiime_config
 q.merge_id_maps
-q.check_id_map
+#q.check_id_map
 q.merge_fasta_files
 q.pick_otus_through_otu_table
 q.per_library_stats

@@ -1,4 +1,6 @@
 module Qiime
+  require 'fileutils'
+
   DEFAULT_CHIMERA_DB   = "/home/maasha/Install/QIIME1.6/data/Gold/gold.fa"
   DEFAULT_BARCODE_SIZE = 10
   DEFAULT_CPUS         = 1
@@ -184,12 +186,36 @@ module Qiime
       file_sff_txt = "#{@options[:dir_out]}/#{base}.sff.txt"
       file_fasta   = "#{@options[:dir_out]}/split_library_output/seqs.fna"
 
-      if checkpoint = get_checkpoint(dir_out)
-        run "denoiser.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_resume} -p #{dir_out} --checkpoint #{checkpoint} -c -n #{@options[:cpus]}"
-        File.rename(dir_out, dir_out + "_bak")
-        File.rename(dir_resume, dir_out)
+      if interrupted? "denoiser.py"
+        if checkpoint = get_checkpoint(dir_resume)
+          FileUtils.cp(File.join(dir_out, "prefix_mapping.txt"), dir_resume)
+          FileUtils.cp(File.join(dir_out, "prefix_dereplicated.fasta"), dir_resume)
+          FileUtils.cp(File.join(dir_out, "prefix_dereplicated.sff.txt"), dir_resume)
+          File.rename(dir_out, dir_out + "." + Time.now.to_f.to_s)
+          File.rename(dir_resume, dir_out)
+        else
+          FileUtils.rm_rf dir_resume if File.directory? dir_resume
+        end
+
+        if checkpoint = get_checkpoint(dir_out)
+          cmd = "denoiser.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_resume} -p #{dir_out} --checkpoint #{checkpoint} -c -n #{@options[:cpus]}"
+          run cmd
+
+          File.rename(dir_out, dir_out + "." + Time.now.to_f.to_s)
+          File.rename(dir_resume, dir_out)
+        else
+          raise QiimeError, "No checkpoint found"
+        end
       else
-        raise QiimeError, "No checkpoint found"
+        if checkpoint = get_checkpoint(dir_out)
+          cmd = "denoiser.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_resume} -p #{dir_out} --checkpoint #{checkpoint} -c -n #{@options[:cpus]}"
+          run cmd
+
+          File.rename(dir_out, dir_out + "." + Time.now.to_f.to_s)
+          File.rename(dir_resume, dir_out)
+        else
+          raise QiimeError, "No checkpoint found"
+        end
       end
     end
 
