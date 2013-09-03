@@ -1,7 +1,7 @@
 module Qiime
   require 'fileutils'
 
-  DEFAULT_CHIMERA_DB   = "/home/maasha/Install/QIIME1.6/data/Gold/gold.fa"
+  DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/Gold/gold.fa"
   DEFAULT_BARCODE_SIZE = 10
   DEFAULT_CPUS         = 1
 
