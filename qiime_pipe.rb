@@ -95,7 +95,7 @@ q.split_libraries
 q.denoise_wrapper              if options[:denoise]
 q.inflate_denoiser_output      if options[:denoise]
 q.chimera_check                if options[:chimera]
-q.pick_otus_through_otu_table
+q.pick_de_novo_otus
 q.per_library_stats
 q.make_otu_heatmap_html
 q.make_otu_network

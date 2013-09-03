@@ -64,7 +64,7 @@ q.print_qiime_config
 q.merge_id_maps
 #q.check_id_map
 q.merge_fasta_files
-q.pick_otus_through_otu_table
+q.pick_de_novo_otus
 q.per_library_stats
 q.make_otu_heatmap_html
 q.make_otu_network

@@ -244,7 +244,7 @@ module Qiime
       run "usearch -quiet -uchime #{file_fasta} -db #{file_ref} -chimeras #{file_chimeras} -nonchimeras #{file_nonchimeras}"
     end
 
-    def pick_otus_through_otu_table
+    def pick_de_novo_otus
       if @options[:merge]   # merging datasets
         file_fasta = "#{@options[:dir_out]}/merged.fasta"
       elsif @options[:chimera]
@@ -258,7 +258,7 @@ module Qiime
       end
 
       dir_out = "#{@options[:dir_out]}/otus"
-      run "pick_otus_through_otu_table.py -i #{file_fasta} -o #{dir_out} -a -O #{@options[:cpus]} -f"
+      run "pick_de_novo_otus.py -i #{file_fasta} -o #{dir_out} -a -O #{@options[:cpus]} -f"
     end
 
     def per_library_stats
