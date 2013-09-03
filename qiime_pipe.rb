@@ -92,7 +92,9 @@ q.load_remote_mapping_file     if options[:remote_map]
 q.check_id_map
 q.process_sff
 q.split_libraries
-q.denoise_wrapper              if options[:denoise]
+#q.denoise_wrapper              if options[:denoise]
+q.denoiser_preprocessor        if options[:denoise]
+q.denoiser                     if options[:denoise]
 q.inflate_denoiser_output      if options[:denoise]
 q.chimera_check                if options[:chimera]
 q.pick_de_novo_otus

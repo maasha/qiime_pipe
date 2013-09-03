@@ -52,6 +52,30 @@ module Qiime
       table.chomp
     end
 
+    # Method to return a mapping table as an array.
+    def to_a
+      @mapping_header + @mapping_table
+    end
+
+    # Method to return the data for a specified column as an array.
+    def column(name)
+      col  = nil
+      data = []
+
+      @mapping_header.each_with_index do |header, i|
+        if header.to_sym == name
+          col = i
+          break
+        end
+      end
+
+      @mapping_table.each do |row|
+        data << row[col]
+      end
+
+      data.empty? ? nil : data
+    end
+
     private
 
     def check_header(line)
@@ -168,6 +192,7 @@ module Qiime
       run "split_libraries.py -b #{@options[:barcode_size]} -m #{@options[:file_map]} -f #{file_fasta} -q #{file_qual} -o #{dir_out}"
     end
 
+    # Broken in QIIME 1.7
     def denoise_wrapper
       dir_out      = "#{@options[:dir_out]}/denoised"
       base         = File.basename(@options[:file_sff], ".sff")
@@ -179,7 +204,22 @@ module Qiime
       interrupted?(cmd) ? self.denoiser : run(cmd)
     end
 
+    def denoiser_preprocessor
+      dir_out      = "#{@options[:dir_out]}/denoiser_preprocessor"
+      base         = File.basename(@options[:file_sff], ".sff")
+      file_sff_txt = "#{@options[:dir_out]}/#{base}.sff.txt"
+      file_fasta   = "#{@options[:dir_out]}/split_library_output/seqs.fna"
+
+      map = MapFile.new
+      map << @options[:file_map]
+
+      primer_seq = map.column(:LinkerPrimerSequence).first
+
+      run "denoiser_preprocess.py -i #{file_sff_txt} -f #{file_fasta} -o #{dir_out} -p #{primer_seq}"
+    end
+
     def denoiser
+      dir_in       = "#{@options[:dir_out]}/denoiser_preprocessor"
       dir_out      = "#{@options[:dir_out]}/denoised"
       dir_resume   = dir_out + "_resumed"
       base         = File.basename(@options[:file_sff], ".sff")
@@ -188,34 +228,19 @@ module Qiime
 
       if interrupted? "denoiser.py"
         if checkpoint = get_checkpoint(dir_resume)
-          FileUtils.cp(File.join(dir_out, "prefix_mapping.txt"), dir_resume)
-          FileUtils.cp(File.join(dir_out, "prefix_dereplicated.fasta"), dir_resume)
-          FileUtils.cp(File.join(dir_out, "prefix_dereplicated.sff.txt"), dir_resume)
           File.rename(dir_out, dir_out + "." + Time.now.to_f.to_s)
-          File.rename(dir_resume, dir_out)
-        else
-          FileUtils.rm_rf dir_resume if File.directory? dir_resume
-        end
 
-        if checkpoint = get_checkpoint(dir_out)
-          cmd = "denoiser.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_resume} -p #{dir_out} --checkpoint #{checkpoint} -c -n #{@options[:cpus]}"
-          run cmd
+          run "denoiser.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_out} -p #{dir_in} --checkpoint #{checkpoint} -c -n #{@options[:cpus]}"
+        elsif checkpoint = get_checkpoint(dir_out)
+          run "denoiser.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_resume} -p #{dir_in} --checkpoint #{checkpoint} -c -n #{@options[:cpus]}"
 
           File.rename(dir_out, dir_out + "." + Time.now.to_f.to_s)
           File.rename(dir_resume, dir_out)
         else
-          raise QiimeError, "No checkpoint found"
+          run "denoiser.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_out} -p #{dir_in} -c -n #{@options[:cpus]} --force"
         end
       else
-        if checkpoint = get_checkpoint(dir_out)
-          cmd = "denoiser.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_resume} -p #{dir_out} --checkpoint #{checkpoint} -c -n #{@options[:cpus]}"
-          run cmd
-
-          File.rename(dir_out, dir_out + "." + Time.now.to_f.to_s)
-          File.rename(dir_resume, dir_out)
-        else
-          raise QiimeError, "No checkpoint found"
-        end
+        run "denoiser.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_out} -p #{dir_in} -c -n #{@options[:cpus]}"
       end
     end
 
