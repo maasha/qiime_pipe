@@ -1,7 +1,7 @@
 module Qiime
   require 'fileutils'
 
-  DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/Gold/gold.fa"
+  DEFAULT_CHIMERA_DB   = "/home/people/maasha/install/QIIME1.7/data/Gold/gold.fa"
   DEFAULT_BARCODE_SIZE = 10
   DEFAULT_CPUS         = 1
 
@@ -232,6 +232,7 @@ module Qiime
 
           run "denoiser.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_out} -p #{dir_in} --checkpoint #{checkpoint} -c -n #{@options[:cpus]}"
         elsif checkpoint = get_checkpoint(dir_out)
+          File.rename(dir_resume, dir_resume + "." + Time.now.to_f.to_s) if File.directory? dir_resume
           run "denoiser.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_resume} -p #{dir_in} --checkpoint #{checkpoint} -c -n #{@options[:cpus]}"
 
           File.rename(dir_out, dir_out + "." + Time.now.to_f.to_s)
