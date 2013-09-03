@@ -3,6 +3,8 @@ qiime_pipe
 
 Ruby script to execute all commands in the QIIME overview tutorial, but including denoising and chimera check.
 
+Works with QIIME 1.7
+
 ```
 Usage: qiime_pipe.rb [options]
     -h, --help                       Display this screen

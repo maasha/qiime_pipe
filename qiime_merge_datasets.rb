@@ -65,7 +65,7 @@ q.merge_id_maps
 #q.check_id_map
 q.merge_fasta_files
 q.pick_de_novo_otus
-q.per_library_stats
+q.print_biom_table_summary
 q.make_otu_heatmap_html
 q.make_otu_network
 q.wf_taxa_summary

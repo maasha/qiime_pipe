@@ -1,7 +1,7 @@
 module Qiime
   require 'fileutils'
 
-  DEFAULT_CHIMERA_DB   = "/home/people/maasha/install/QIIME1.7/data/Gold/gold.fa"
+  DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/Gold/gold.fa"
   DEFAULT_BARCODE_SIZE = 10
   DEFAULT_CPUS         = 1
 
@@ -287,10 +287,10 @@ module Qiime
       run "pick_de_novo_otus.py -i #{file_fasta} -o #{dir_out} -a -O #{@options[:cpus]} -f"
     end
 
-    def per_library_stats
+    def print_biom_table_summary
       file_biom  = "#{@options[:dir_out]}/otus/otu_table.biom"
       file_stats = "#{file_biom}.stats"
-      run "per_library_stats.py -i #{file_biom} > #{file_stats}"
+      run "print_biom_table_summary.py -i #{file_biom} > #{file_stats}"
 
       File.open(file_stats, 'r') do |ios|
         ios.each_line do |line|
