@@ -20,6 +20,8 @@ module Qiime
 
       File.open(file, 'r') do |ios|
         ios.each do |line|
+          line.gsub!(/\r/, "\n")
+
           if line[0] == '#'
             if line =~ /^#SampleID/
               got_header = true
@@ -126,7 +128,12 @@ module Qiime
 
     def print_qiime_config
       log = "#{@options[:dir_out]}/print_qiime_config.log"
-      run "print_qiime_config.py -t > #{log} 2>&1"
+
+      case ENV['SHELL']
+      when /bash/ then run "print_qiime_config.py -t > #{log} 2>&1"
+      when /tcsh/ then run "print_qiime_config.py -t >& #{log}"
+      else raise "Unknown shell in environment"
+      end
     end
 
     def load_remote_mapping_file
