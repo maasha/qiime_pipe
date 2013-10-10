@@ -20,6 +20,22 @@ OptionParser.new do |opts|
     exit
   end
 
+  opts.on("-i", "--input_dir <dir>", String, "Input directoy with FASTQ files") do |o|
+    options[:input_dir] = o
+  end
+
+  opts.on("-o", "--output_dir <dir>", String, "Output directoy with FASTQ files (default / )") do |o|
+    options[:output_dir] = o
+  end
+
+  opts.on("-f", "--force", "Force overwrite output directory") do |o|
+    options[:force] = o
+  end
+
+  opts.on("-C", "--cpus <int>", Integer, "Number of CPUs to use (default 1)") do |o|
+    options[:cpus] = o
+  end
+
   opts.on("--trim_qual <int>", Integer, "Minimum quality (default 20)") do |o|
     options[:trim_qual] = o
   end
@@ -35,11 +51,28 @@ OptionParser.new do |opts|
   opts.on("--overlap_min <int>", Integer, "Minimum asembly overlap (default 15)") do |o|
     options[:overlap_min] = o
   end
-
-  opts.on("-C", "--cpus <int>", Integer, "Number of CPUs to use (default 1)") do |o|
-    options[:cpus] = o
-  end
 end.parse!
+
+raise "No input directory specified."  unless options[:input_dir]
+raise "No output directory specified." unless options[:output_dir]
+raise "No no such directory: #{options[:input_dir]}" unless File.directory? options[:input_dir]
+
+if File.directory? options[:output_dir]
+  if options[:force]
+    FileUtils.rm_rf options[:output_dir]
+    FileUtils.mkdir options[:output_dir]
+  else
+    raise "Output directory exists. Use --force to overwrite"
+  end
+else
+  FileUtils.mkdir options[:output_dir]
+end
+
+options[:log_dir] = File.join(options[:output_dir], "log")
+FileUtils.mkdir options[:log_dir]
+
+options[:seq_dir] = File.join(options[:output_dir], "seq")
+FileUtils.mkdir options[:seq_dir]
 
 options[:overlap_min]    ||= 15
 options[:mismatches_max] ||= 5
@@ -47,7 +80,7 @@ options[:trim_qual]      ||= 20
 options[:trim_len]       ||= 3
 options[:cpus]           ||= 1
 
-fastq_files = ARGV
+fastq_files = Dir.glob("#{options[:input_dir]}/*").reject { |f| f.match("Undermined") }
 
 def sample_names(fastq_files)
   samples = {}
@@ -76,11 +109,7 @@ def sample_names(fastq_files)
   samples
 end
 
-log = STDERR
-
 samples = sample_names(fastq_files)
-
-log.puts "#" + %w{sample reads_total bases_total reads_assembled_ok reads_assembled_fail bases_assembled bases_ok bases_trimmed }.join("\t")
 
 Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
   stats = Hash.new(0)
@@ -88,6 +117,7 @@ Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
 
   in1 = Fastq.open(files[:file1])
   in2 = Fastq.open(files[:file2])
+  out = Fastq.open(File.join(options[:seq_dir], "#{sample}.fna"), 'w')
 
   while entry1 = in1.get_entry and entry2 = in2.get_entry
     stats[:reads_total] += 2
@@ -105,7 +135,7 @@ Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
       stats[:bases_trimmed] += assembly.length - trim.length
 
       trim.seq_name = sample.to_s.sub(/_L\d{3}/, "") + "_#{count} " + trim.seq_name
-      puts trim.to_fastq
+      out.puts trim.to_fasta
 
       count += 1
     else
@@ -115,15 +145,38 @@ Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
 
   in1.close
   in2.close
+  out.close
 
-  log.puts [
-    sample,
-    stats[:reads_total],
-    stats[:bases_total],
-    stats[:reads_assembled_ok],
-    stats[:reads_assembled_fail],
-    stats[:bases_assembled],
-    stats[:bases_ok],
-    stats[:bases_trimmed]
-  ].join("\t")
+  File.open(File.join(options[:log_dir], "#{sample}.log"), 'w') do |ios|
+    ios.puts [
+      sample,
+      stats[:reads_total],
+      stats[:bases_total],
+      stats[:reads_assembled_ok],
+      stats[:reads_assembled_fail],
+      stats[:bases_assembled],
+      stats[:bases_ok],
+      stats[:bases_trimmed]
+    ].join("\t")
+  end
 end
+
+system("cat #{options[:seq_dir]}/* > #{options[:output_dir]}/seqs.fna")
+
+stats = []
+
+log_files = Dir.glob("#{options[:log_dir]}/*")
+
+log_files.each do |file|
+  File.open(file) do |ios|
+    stats << ios.gets
+  end
+end
+
+File.open(File.join(options[:output_dir], "log.txt"), 'w') do |ios|
+  ios.puts "#" + %w{sample reads_total bases_total reads_assembled_ok reads_assembled_fail bases_assembled bases_ok bases_trimmed }.join("\t")
+  stats.each { |s| ios.puts s }
+end
+
+FileUtils.rm_rf options[:seq_dir]
+FileUtils.rm_rf options[:log_dir]
