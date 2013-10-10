@@ -53,16 +53,16 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-raise "No input directory specified."  unless options[:input_dir]
-raise "No output directory specified." unless options[:output_dir]
-raise "No no such directory: #{options[:input_dir]}" unless File.directory? options[:input_dir]
+raise OptionParser::MissingArgument, "No input directory specified."  unless options[:input_dir]
+raise OptionParser::MissingArgument, "No output directory specified." unless options[:output_dir]
+raise OptionParser::InvalidArgument, "No no such directory: #{options[:input_dir]}" unless File.directory? options[:input_dir]
 
 if File.directory? options[:output_dir]
   if options[:force]
     FileUtils.rm_rf options[:output_dir]
     FileUtils.mkdir options[:output_dir]
   else
-    raise "Output directory exists. Use --force to overwrite"
+    raise OptionParser::InvalidArgument, "Output directory exists. Use --force to overwrite"
   end
 else
   FileUtils.mkdir options[:output_dir]
@@ -80,29 +80,29 @@ options[:trim_qual]      ||= 20
 options[:trim_len]       ||= 3
 options[:cpus]           ||= 1
 
-fastq_files = Dir.glob("#{options[:input_dir]}/*").reject { |f| f.match("Undermined") }
+fastq_files = Dir.glob("#{options[:input_dir]}/*").reject { |f| f.match("Undetermined") }
 
 def sample_names(fastq_files)
-  samples = {}
+  samples = Hash.new { |h, k| h[k] = {} }
   file1   = nil
   file2   = nil
   prefix1 = nil
   prefix2 = nil
 
   fastq_files.each do |file|
-    case file
-    when /(.+)_R1_/ then
-      file1   = file
-      prefix1 = File.basename $1 
-    when /(.+)_R2_/ then
-      file2   = file
-      prefix2 = File.basename $1
-    else
-      puts "unmatched file: #{file}"
-    end
+    base = File.basename file
 
-    if prefix1 == prefix2
-      samples[prefix1.to_sym] = {file1: file1, file2: file2}
+    if base.match(/(.+)_(R[1-2])_/)
+      prefix = $1
+      pair   = $2
+
+      case pair
+      when "R1" then samples[prefix.to_sym][:file1] = file
+      when "R2" then samples[prefix.to_sym][:file2] = file
+      else raise "Bad pair value: #{pair}"
+      end
+    else
+      raise "Failed to find base prefix: #{base}"
     end
   end
 
@@ -110,6 +110,8 @@ def sample_names(fastq_files)
 end
 
 samples = sample_names(fastq_files)
+
+samples.map { |sample| raise "Bad sample #{sample}" if sample.size != 2 }
 
 Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
   stats = Hash.new(0)
@@ -134,10 +136,12 @@ Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
       stats[:bases_ok]      += trim.length
       stats[:bases_trimmed] += assembly.length - trim.length
 
-      trim.seq_name = sample.to_s.sub(/_L\d{3}/, "") + "_#{count} " + trim.seq_name
-      out.puts trim.to_fasta
+      if trim.length >= 40
+        trim.seq_name = sample.to_s.sub(/_S\d+_L\d{3}/, "") + "_#{count} " + trim.seq_name
+        out.puts trim.to_fasta
 
-      count += 1
+        count += 1
+      end
     else
       stats[:reads_assembled_fail] += 1
     end

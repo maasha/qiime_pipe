@@ -22,6 +22,10 @@ OptionParser.new do |opts|
     options[:file_sff] = o
   end
 
+  opts.on("-i", "--dir_illumina <dir>", String, "Illumina directory to process") do |o|
+    options[:dir_illumina] = o
+  end
+
   opts.on("-m", "--file_map <file>", String, "Mapping file to process") do |o|
     options[:file_map] = o
   end
@@ -78,9 +82,19 @@ if options[:file_map] and not File.file? options[:file_map]
   raise OptionParser::InvalidOption, "no such file: #{options[:file_map]}"
 end
 
-raise OptionParser::MissingArgument, "--file_sff" if options[:file_sff].nil?
+unless options[:file_sff] or options[:dir_illumina]
+  raise OptionParser::MissingArgument, "--file_sff or --dir_illumina must be specified"
+end
+
+if options[:sff_file] and not File.file?(options[:file_sff])
+  raise OptionParser::InvalidOption, "no such file: #{options[:file_sff]}"
+end
+
+if options[:dir_illumina] and not File.directory?(options[:dir_illumina])
+  raise OptionParser::InvalidOption, "no such directory: #{options[:dir_illumina]}"
+end
+
 raise OptionParser::MissingArgument, "--dir_out"  if options[:dir_out].nil?
-raise OptionParser::InvalidOption,   "no such file: #{options[:file_sff]}" unless File.file?(options[:file_sff])
 
 q = Qiime::Pipeline.new(options)
 q.log_delete                   if options[:force]
@@ -90,9 +104,9 @@ q.dir_create
 q.print_qiime_config
 q.load_remote_mapping_file     if options[:remote_map]
 q.check_id_map
-q.process_sff
-q.split_libraries
-#q.denoise_wrapper              if options[:denoise]
+q.process_sff                  if options[:file_sff]
+q.process_illumina             if options[:dir_illumina]
+q.split_libraries              if options[:file_sff]
 q.denoiser_preprocessor        if options[:denoise]
 q.denoiser                     if options[:denoise]
 q.inflate_denoiser_output      if options[:denoise]

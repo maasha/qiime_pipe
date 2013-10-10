@@ -176,6 +176,11 @@ module Qiime
       end
     end
 
+    def process_illumina
+      dir_out = "#{@options[:dir_out]}/split_library_output"
+      run "process_illumina.rb -i #{@options[:dir_illumina]} -o #{dir_out} -C #{@options[:cpus]}"
+    end
+
     def process_sff
       base         = File.basename(@options[:file_sff], ".sff")
       file_sff_txt = "#{@options[:dir_out]}/#{base}.sff.txt"
@@ -197,18 +202,6 @@ module Qiime
       file_fasta = "#{@options[:dir_out]}/#{base}.fna"
       file_qual  = "#{@options[:dir_out]}/#{base}.qual"
       run "split_libraries.py -b #{@options[:barcode_size]} -m #{@options[:file_map]} -f #{file_fasta} -q #{file_qual} -o #{dir_out}"
-    end
-
-    # Broken in QIIME 1.7
-    def denoise_wrapper
-      dir_out      = "#{@options[:dir_out]}/denoised"
-      base         = File.basename(@options[:file_sff], ".sff")
-      file_sff_txt = "#{@options[:dir_out]}/#{base}.sff.txt"
-      file_fasta   = "#{@options[:dir_out]}/split_library_output/seqs.fna"
-
-      cmd = "denoise_wrapper.py --titanium -i #{file_sff_txt} -f #{file_fasta} -o #{dir_out} -m #{@options[:file_map]} -n #{@options[:cpus]}"
-
-      interrupted?(cmd) ? self.denoiser : run(cmd)
     end
 
     def denoiser_preprocessor
