@@ -5,6 +5,7 @@ require 'optparse'
 require 'parallel'
 require 'maasha/fastq'
 require 'maasha/seq/assemble'
+require_relative 'lib/qiime'
 
 ARGV << "-h" if ARGV.empty?
 
@@ -22,6 +23,10 @@ OptionParser.new do |opts|
 
   opts.on("-i", "--input_dir <dir>", String, "Input directoy with FASTQ files") do |o|
     options[:input_dir] = o
+  end
+
+  opts.on("-m", "--map_file <file>", String, "Mapping file to process") do |o|
+    options[:map_file] = o
   end
 
   opts.on("-o", "--output_dir <dir>", String, "Output directoy with FASTQ files (default / )") do |o|
@@ -54,6 +59,7 @@ OptionParser.new do |opts|
 end.parse!
 
 raise OptionParser::MissingArgument, "No input directory specified."  unless options[:input_dir]
+raise OptionParser::MissingArgument, "No mapping file specified."     unless options[:map_file]
 raise OptionParser::MissingArgument, "No output directory specified." unless options[:output_dir]
 raise OptionParser::InvalidArgument, "No no such directory: #{options[:input_dir]}" unless File.directory? options[:input_dir]
 
@@ -80,7 +86,11 @@ options[:trim_qual]      ||= 20
 options[:trim_len]       ||= 3
 options[:cpus]           ||= 1
 
-fastq_files = Dir.glob("#{options[:input_dir]}/*").reject { |f| f.match("Undetermined") }
+name_hash = {}
+m = Qiime::MapFile.new
+m.parse(options[:map_file]).column(:SampleID).each { |n| name_hash[n] = true }
+
+fastq_files = Dir.glob("#{options[:input_dir]}/*").select { |f| name_hash[File.basename(f).split('_').first] }
 
 def sample_names(fastq_files)
   samples = Hash.new { |h, k| h[k] = {} }

@@ -1,7 +1,8 @@
 module Qiime
   require 'fileutils'
 
-  DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/Gold/gold.fa"
+  # DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/Gold/gold.fa"
+  DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/gg_otus_4feb2011/rep_set/gg_97_otus_4feb2011_aligned.fasta"
   DEFAULT_BARCODE_SIZE = 10
   DEFAULT_CPUS         = 1
 
@@ -12,6 +13,35 @@ module Qiime
       @mapping_header = []
       @mapping_table  = []
       @file_count     = 0
+    end
+
+    # Method to parse a QIIME mapping file to the mapping table.
+    def parse(file)
+      got_header = false
+
+      File.open(file, 'r') do |ios|
+        ios.each do |line|
+          line.gsub!(/\r/, "\n")
+
+          if line[0] == '#'
+            if line =~ /^#SampleID/
+              got_header = true
+
+              check_header(line)
+
+              @mapping_header = line[1 .. line.length].chomp.split("\t") if @mapping_header.empty?
+            end
+          else
+            if got_header
+              @mapping_table << line.chomp.split("\t")
+            else
+              raise QiimeError, "Mapping file must start with '#SampleID'"
+            end
+          end
+        end
+      end
+
+      self
     end
 
     # Method to parse and add a QIIME mapping file to the mapping table.
@@ -28,7 +58,7 @@ module Qiime
 
               check_header(line)
 
-              @mapping_header = line.chomp.split("\t") if @mapping_header.empty?
+              @mapping_header = line[1 .. line.length].chomp.split("\t") if @mapping_header.empty?
             end
           else
             if got_header
@@ -45,7 +75,7 @@ module Qiime
 
     # Method to convert a QIIME mapping table to a string.
     def to_s
-      table = @mapping_header.join("\t") + $/
+      table = "#" + @mapping_header.join("\t") + $/
 
       @mapping_table.each do |row|
         table << row.join("\t") + $/
@@ -178,7 +208,7 @@ module Qiime
 
     def process_illumina
       dir_out = "#{@options[:dir_out]}/split_library_output"
-      run "process_illumina.rb -i #{@options[:dir_illumina]} -o #{dir_out} -C #{@options[:cpus]}"
+      run "process_illumina.rb -i #{@options[:dir_illumina]} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
     end
 
     def process_sff
@@ -252,6 +282,34 @@ module Qiime
       file_map        = "#{@options[:dir_out]}/denoised/denoiser_mapping.txt"
       file_out        = "#{@options[:dir_out]}/denoised/inflated.fna"
       run "inflate_denoiser_output.py -c #{file_centroids} -s #{file_singletons} -f #{file_fasta} -d #{file_map} -o #{file_out}"
+    end
+
+    def identify_chimeric_seq
+      if @options[:denoise]
+        file_fasta = "#{@options[:dir_out]}/denoised/inflated.fna"
+      else
+        file_fasta = "#{@options[:dir_out]}/split_library_output/seqs.fna"
+      end
+
+      Dir.mkdir("#{@options[:dir_out]}/chimera") unless File.directory? "#{@options[:dir_out]}/chimera"
+
+      file_ref      = @options[:chimera_db]
+      file_chimeras = "#{@options[:dir_out]}/chimera/chimeras.txt"
+
+      run "identify_chimeric_seqs.py -m ChimeraSlayer -i #{file_fasta} -a #{file_ref} -o #{file_chimeras}"
+    end
+
+    def filter_fasta
+      if @options[:denoise]
+        file_fasta = "#{@options[:dir_out]}/denoised/inflated.fna"
+      else
+        file_fasta = "#{@options[:dir_out]}/split_library_output/seqs.fna"
+      end
+
+      file_chimeras    = "#{@options[:dir_out]}/chimera/chimeras.txt"
+      file_nonchimeras = "#{@options[:dir_out]}/chimera/nonchimeras.fasta"
+
+      run "filter_fasta.py -f #{file_fasta} -o #{file_nonchimeras} -s #{file_chimeras} -n"
     end
 
     def chimera_check

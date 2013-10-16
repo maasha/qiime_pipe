@@ -110,7 +110,9 @@ q.split_libraries              if options[:file_sff]
 q.denoiser_preprocessor        if options[:denoise]
 q.denoiser                     if options[:denoise]
 q.inflate_denoiser_output      if options[:denoise]
-q.chimera_check                if options[:chimera]
+q.identify_chimeric_seq        if options[:chimera]
+q.filter_fasta                 if options[:chimera]
+#q.chimera_check                if options[:chimera]
 q.pick_de_novo_otus
 q.print_biom_table_summary
 q.make_otu_heatmap_html
