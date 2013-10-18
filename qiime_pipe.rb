@@ -123,7 +123,16 @@ q.beta_diversity_through_plots
 q.jackknifed_beta_diversity
 q.make_bootstrapped_tree
 q.make_3d_plots
-q.send_mail("Finished: " + File.basename(options[:file_sff])) if options[:email]
+
+if options[:email]
+  if options[:file_sff]
+    project = File.basename(options[:file_sff])
+  else
+    project = options[:dir_illumina]
+  end
+
+  q.send_mail("Finished: #{project}")
+end
 
 puts "All done."
 
