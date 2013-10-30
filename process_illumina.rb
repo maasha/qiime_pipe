@@ -49,11 +49,15 @@ OptionParser.new do |opts|
     options[:trim_len] = o
   end
 
+  opts.on("--min_len <int>", Integer, "Minimum sequence length (default 40)") do |o|
+    options[:min_len] = o
+  end
+
   opts.on("--mismatches_max <int>", Integer, "Maximum number of mismatches in percent (default 5)") do |o|
     options[:mismatches_max] = o
   end
 
-  opts.on("--overlap_min <int>", Integer, "Minimum asembly overlap (default 15)") do |o|
+  opts.on("--overlap_min <int>", Integer, "Minimum assembly overlap (default 15)") do |o|
     options[:overlap_min] = o
   end
 end.parse!
@@ -85,10 +89,14 @@ options[:mismatches_max] ||= 5
 options[:trim_qual]      ||= 20
 options[:trim_len]       ||= 3
 options[:cpus]           ||= 1
+options[:min_len]        ||= 40
 
 name_hash = {}
 m = Qiime::MapFile.new
 m.parse(options[:map_file]).column(:SampleID).each { |n| name_hash[n] = true }
+
+forward_primer = m.column(:LinkerPrimerSequence).first
+reverse_primer = m.column(:i7PrimerSequence).first
 
 fastq_files = Dir.glob("#{options[:input_dir]}/*").select { |f| name_hash[File.basename(f).split('_').first] }
 
@@ -135,25 +143,50 @@ Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
     stats[:reads_total] += 2
     stats[:bases_total] += entry1.length + entry2.length
 
-    entry2.type = :dna
+    if entry1.patmatch_trim_left!(forward_primer, max_mismatches: 2, max_insertions: 1, max_deletions: 1)
+      stats[:e1_fprimer_found] += 1
 
-    if assembly = Assemble.pair(entry1, entry2.reverse.complement, options)
-      stats[:reads_assembled_ok] += 1
-      stats[:bases_assembled] += assembly.length
+      trim1 = entry1.quality_trim(options[:trim_qual], options[:trim_len])
+      stats[:e1_bases_ok]   += trim1.length
+      stats[:e1_bases_trim] += entry1.length - trim1.length
 
-      trim = assembly.quality_trim(options[:trim_qual], options[:trim_len])
+      if trim1.length >= options[:min_len]
+        stats[:e1_length_ok] += 1
 
-      stats[:bases_ok]      += trim.length
-      stats[:bases_trimmed] += assembly.length - trim.length
+        if entry2.patmatch_trim_left!(reverse_primer, max_mismatches: 2, max_insertions: 1, max_deletions: 1)
+          stats[:e2_rprimer_found] += 1
 
-      if trim.length >= 40
-        trim.seq_name = sample.to_s.sub(/_S\d+_L\d{3}/, "") + "_#{count} " + trim.seq_name
-        out.puts trim.to_fasta
+          trim2 = entry2.quality_trim(options[:trim_qual], options[:trim_len])
+          stats[:e2_bases_ok]   += trim2.length
+          stats[:e2_bases_trim] += entry2.length - trim2.length
 
-        count += 1
+          if trim2.length >= options[:min_len]
+            stats[:e2_length_ok] += 1
+            trim2.type = :dna
+            trim2.reverse!.complement!
+
+            if assembly = Assemble.pair(trim1, trim2, options)
+              stats[:reads_assembled_ok] += 1
+              stats[:bases_assembled] += assembly.length
+
+              assembly.seq_name = sample.to_s.sub(/_S\d+_L\d{3}/, "") + "_#{count} " + assembly.seq_name
+              out.puts assembly.to_fasta
+
+              count += 1
+            else
+              stats[:reads_assembled_fail] += 1
+            end
+          else
+            stats[:e2_length_bad] += 1
+          end
+        else
+          stats[:e2_rprimer_miss] += 1
+        end
+      else
+        stats[:e1_length_bad] += 1
       end
     else
-      stats[:reads_assembled_fail] += 1
+      stats[:e1_fprimer_miss] += 1
     end
   end
 
@@ -164,13 +197,21 @@ Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
   File.open(File.join(options[:log_dir], "#{sample}.log"), 'w') do |ios|
     ios.puts [
       sample,
-      stats[:reads_total],
-      stats[:bases_total],
+      stats[:e1_fprimer_found],
+      stats[:e1_fprimer_miss],
+      stats[:e1_bases_ok],
+      stats[:e1_bases_trim],
+      stats[:e1_length_ok],
+      stats[:e1_length_bad],
+      stats[:e2_rprimer_found],
+      stats[:e2_rprimer_miss],
+      stats[:e2_bases_ok],
+      stats[:e2_bases_trim],
+      stats[:e2_length_ok],
+      stats[:e2_length_bad],
       stats[:reads_assembled_ok],
       stats[:reads_assembled_fail],
-      stats[:bases_assembled],
-      stats[:bases_ok],
-      stats[:bases_trimmed]
+      stats[:bases_assembled]
     ].join("\t")
   end
 end
@@ -188,9 +229,30 @@ log_files.each do |file|
 end
 
 File.open(File.join(options[:output_dir], "log.txt"), 'w') do |ios|
-  ios.puts "#" + %w{sample reads_total bases_total reads_assembled_ok reads_assembled_fail bases_assembled bases_ok bases_trimmed }.join("\t")
+  ios.puts "#" + %w{sample
+    e1_fprimer_found
+    e1_fprimer_miss
+    e1_bases_ok
+    e1_bases_trim
+    e1_length_ok
+    e1_length_bad
+    e2_rprimer_found
+    e2_rprimer_miss
+    e2_bases_ok
+    e2_bases_trim
+    e2_length_ok
+    e2_length_bad
+    reads_assembled_ok
+    reads_assembled_fail
+    bases_assembled
+  }.join("\t")
   stats.each { |s| ios.puts s }
 end
 
 FileUtils.rm_rf options[:seq_dir]
 FileUtils.rm_rf options[:log_dir]
+
+
+
+__END__
+

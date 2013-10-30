@@ -294,9 +294,9 @@ module Qiime
       Dir.mkdir("#{@options[:dir_out]}/chimera") unless File.directory? "#{@options[:dir_out]}/chimera"
 
       file_ref      = @options[:chimera_db]
-      file_chimeras = "#{@options[:dir_out]}/chimera/chimeras.txt"
+      dir_chimeras  = "#{@options[:dir_out]}/chimera/"
 
-      run "identify_chimeric_seqs.py -m ChimeraSlayer -i #{file_fasta} -a #{file_ref} -o #{file_chimeras}"
+      run "identify_chimeric_seqs.py -m usearch61 -i #{file_fasta} -o #{dir_chimeras} -r #{file_ref} --suppress_usearch61_denovo"  # --suppress_usearch61_ref
     end
 
     def filter_fasta
