@@ -96,7 +96,7 @@ m = Qiime::MapFile.new
 m.parse(options[:map_file]).column(:SampleID).each { |n| name_hash[n] = true }
 
 forward_primer = m.column(:LinkerPrimerSequence).first
-reverse_primer = m.column(:i7PrimerSequence).first
+reverse_primer = m.column(:ReversePrimerSequence).first
 
 fastq_files = Dir.glob("#{options[:input_dir]}/*").select { |f| name_hash[File.basename(f).split('_').first] }
 

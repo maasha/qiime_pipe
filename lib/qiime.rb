@@ -2,7 +2,7 @@ module Qiime
   require 'fileutils'
 
   # DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/Gold/gold.fa"
-  DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/gg_otus_4feb2011/rep_set/gg_97_otus_4feb2011_aligned.fasta"
+  DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/gg_otus_4feb2011/rep_set/gg_97_otus_4feb2011.fasta"
   DEFAULT_BARCODE_SIZE = 10
   DEFAULT_CPUS         = 1
 
@@ -132,6 +132,14 @@ module Qiime
       @options     = options
       @file_log    = @options[:dir_out] + ".log"
       @min_samples = 0
+
+      if @options[:file_sff]
+        @options[:dataset_name] = File.basename(@options[:file_sff])
+      elsif @options[:dir_illumina]
+        @options[:dataset_name] = File.basename(@options[:dir_illumina])
+      else
+        raise "failed to set dataset_name"
+      end
     end
 
     def log_delete
@@ -198,7 +206,7 @@ module Qiime
           if line.chomp == "No errors or warnings found in mapping file."
             break
           else
-            error = "Errors and warnings found in mapping file."
+            error = "Fail: #{@options[:dataset_name} Errors and warnings found in mapping file."
             self.send_mail(error) if @options[:email]
             raise QiimeError, error
           end
@@ -296,7 +304,8 @@ module Qiime
       file_ref      = @options[:chimera_db]
       dir_chimeras  = "#{@options[:dir_out]}/chimera/"
 
-      run "identify_chimeric_seqs.py -m usearch61 -i #{file_fasta} -o #{dir_chimeras} -r #{file_ref} --suppress_usearch61_denovo"  # --suppress_usearch61_ref
+      #run "identify_chimeric_seqs.py -m usearch61 -i #{file_fasta} -o #{dir_chimeras} -r #{file_ref} --suppress_usearch61_denovo"  # --suppress_usearch61_ref
+      run "identify_chimeric_seqs.py -m usearch61 -i #{file_fasta} -o #{dir_chimeras} -r #{file_ref} --suppress_usearch61_ref"
     end
 
     def filter_fasta
@@ -361,7 +370,7 @@ module Qiime
       end
 
       if @min_samples == 0
-        error = "Fail: Failed to parse min samples."
+        error = "Fail: #{@options[:dataset_name]} Failed to parse min samples."
         self.send_mail(error) if @options[:email]
         raise QiimeError, error
       end
@@ -467,7 +476,7 @@ module Qiime
           puts "FAIL"
           log "FAIL", cmd
 
-          self.send_mail("Fail: " + File.basename(@options[:file_sff])) if @options[:email]
+          self.send_mail("Fail: #{@options[:dataset_name]}") if @options[:email]
 
           raise QiimeError, "FAIL"
         end
