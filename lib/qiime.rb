@@ -206,7 +206,7 @@ module Qiime
           if line.chomp == "No errors or warnings found in mapping file."
             break
           else
-            error = "Fail: #{@options[:dataset_name} Errors and warnings found in mapping file."
+            error = "Fail: #{@options[:dataset_name]} Errors and warnings found in mapping file."
             self.send_mail(error) if @options[:email]
             raise QiimeError, error
           end

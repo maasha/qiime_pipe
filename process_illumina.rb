@@ -49,6 +49,10 @@ OptionParser.new do |opts|
     options[:trim_len] = o
   end
 
+  opts.on("--trim_primers", "Trim primers from reads prior to assembly") do |o|
+    options[:trim_forward] = o
+  end
+
   opts.on("--min_len <int>", Integer, "Minimum sequence length (default 40)") do |o|
     options[:min_len] = o
   end
@@ -143,9 +147,53 @@ Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
     stats[:reads_total] += 2
     stats[:bases_total] += entry1.length + entry2.length
 
-    if entry1.patmatch_trim_left!(forward_primer, max_mismatches: 2, max_insertions: 1, max_deletions: 1)
-      stats[:e1_fprimer_found] += 1
+    if options[:trim_primers]
+      if entry1.patmatch_trim_left!(forward_primer, max_mismatches: 2, max_insertions: 1, max_deletions: 1)
+        stats[:e1_fprimer_found] += 1
 
+        trim1 = entry1.quality_trim(options[:trim_qual], options[:trim_len])
+        stats[:e1_bases_ok]   += trim1.length
+        stats[:e1_bases_trim] += entry1.length - trim1.length
+
+        if trim1.length >= options[:min_len]
+          stats[:e1_length_ok] += 1
+
+          if entry2.patmatch_trim_left!(reverse_primer, max_mismatches: 2, max_insertions: 1, max_deletions: 1)
+            stats[:e2_rprimer_found] += 1
+
+            trim2 = entry2.quality_trim(options[:trim_qual], options[:trim_len])
+            stats[:e2_bases_ok]   += trim2.length
+            stats[:e2_bases_trim] += entry2.length - trim2.length
+
+            if trim2.length >= options[:min_len]
+              stats[:e2_length_ok] += 1
+              trim2.type = :dna
+              trim2.reverse!.complement!
+
+              if assembly = Assemble.pair(trim1, trim2, options)
+                stats[:reads_assembled_ok] += 1
+                stats[:bases_assembled] += assembly.length
+
+                assembly.seq_name = sample.to_s.sub(/_S\d+_L\d{3}/, "") + "_#{count} " + assembly.seq_name
+                out.puts assembly.to_fasta
+
+                count += 1
+              else
+                stats[:reads_assembled_fail] += 1
+              end
+            else
+              stats[:e2_length_bad] += 1
+            end
+          else
+            stats[:e2_rprimer_miss] += 1
+          end
+        else
+          stats[:e1_length_bad] += 1
+        end
+      else
+        stats[:e1_fprimer_miss] += 1
+      end
+    else
       trim1 = entry1.quality_trim(options[:trim_qual], options[:trim_len])
       stats[:e1_bases_ok]   += trim1.length
       stats[:e1_bases_trim] += entry1.length - trim1.length
@@ -153,40 +201,32 @@ Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
       if trim1.length >= options[:min_len]
         stats[:e1_length_ok] += 1
 
-        if entry2.patmatch_trim_left!(reverse_primer, max_mismatches: 2, max_insertions: 1, max_deletions: 1)
-          stats[:e2_rprimer_found] += 1
+        trim2 = entry2.quality_trim(options[:trim_qual], options[:trim_len])
+        stats[:e2_bases_ok]   += trim2.length
+        stats[:e2_bases_trim] += entry2.length - trim2.length
 
-          trim2 = entry2.quality_trim(options[:trim_qual], options[:trim_len])
-          stats[:e2_bases_ok]   += trim2.length
-          stats[:e2_bases_trim] += entry2.length - trim2.length
+        if trim2.length >= options[:min_len]
+          stats[:e2_length_ok] += 1
+          trim2.type = :dna
+          trim2.reverse!.complement!
 
-          if trim2.length >= options[:min_len]
-            stats[:e2_length_ok] += 1
-            trim2.type = :dna
-            trim2.reverse!.complement!
+          if assembly = Assemble.pair(trim1, trim2, options)
+            stats[:reads_assembled_ok] += 1
+            stats[:bases_assembled] += assembly.length
 
-            if assembly = Assemble.pair(trim1, trim2, options)
-              stats[:reads_assembled_ok] += 1
-              stats[:bases_assembled] += assembly.length
+            assembly.seq_name = sample.to_s.sub(/_S\d+_L\d{3}/, "") + "_#{count} " + assembly.seq_name
+            out.puts assembly.to_fasta
 
-              assembly.seq_name = sample.to_s.sub(/_S\d+_L\d{3}/, "") + "_#{count} " + assembly.seq_name
-              out.puts assembly.to_fasta
-
-              count += 1
-            else
-              stats[:reads_assembled_fail] += 1
-            end
+            count += 1
           else
-            stats[:e2_length_bad] += 1
+            stats[:reads_assembled_fail] += 1
           end
         else
-          stats[:e2_rprimer_miss] += 1
+          stats[:e2_length_bad] += 1
         end
       else
         stats[:e1_length_bad] += 1
       end
-    else
-      stats[:e1_fprimer_miss] += 1
     end
   end
 
