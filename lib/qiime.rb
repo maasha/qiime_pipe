@@ -304,8 +304,7 @@ module Qiime
       file_ref      = @options[:chimera_db]
       dir_chimeras  = "#{@options[:dir_out]}/chimera/"
 
-      #run "identify_chimeric_seqs.py -m usearch61 -i #{file_fasta} -o #{dir_chimeras} -r #{file_ref} --suppress_usearch61_denovo"  # --suppress_usearch61_ref
-      run "identify_chimeric_seqs.py -m usearch61 -i #{file_fasta} -o #{dir_chimeras} -r #{file_ref} --suppress_usearch61_ref"
+      run "identify_chimeric_seqs.py -m usearch61 -i #{file_fasta} -o #{dir_chimeras} -r #{file_ref} --suppress_usearch61_denovo"  # --suppress_usearch61_ref
     end
 
     def filter_fasta
