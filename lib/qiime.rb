@@ -408,7 +408,7 @@ module Qiime
         ios.puts "alpha_diversity:metrics shannon,PD_whole_tree,chao1,observed_species"
       end
 
-      run "alpha_rarefaction.py -i #{file_biom} -m #{@options[:file_map]} -o #{dir_out} -p #{file_params} -t #{file_tree} -a -f"
+      run "alpha_rarefaction.py -i #{file_biom} -m #{@options[:file_map]} -o #{dir_out} -p #{file_params} -t #{file_tree} -a -O #{@options[:cpus]} -f"
     end
 
     def beta_diversity_through_plots
