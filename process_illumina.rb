@@ -89,7 +89,7 @@ options[:seq_dir] = File.join(options[:output_dir], "seq")
 FileUtils.mkdir options[:seq_dir]
 
 options[:overlap_min]    ||= 15
-options[:mismatches_max] ||= 5
+options[:mismatches_max] ||= 20
 options[:trim_qual]      ||= 20
 options[:trim_len]       ||= 3
 options[:cpus]           ||= 1
