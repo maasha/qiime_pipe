@@ -415,7 +415,7 @@ module Qiime
       file_biom = "#{@options[:dir_out]}/otus/otu_table.biom"
       file_tree = "#{@options[:dir_out]}/otus/rep_set.tre"
       dir_out   = "#{@options[:dir_out]}/wf_bdiv_even"
-      run "beta_diversity_through_plots.py -i #{file_biom} -m #{@options[:file_map]} -o #{dir_out} -t #{file_tree} -e #{@min_samples} -a -f"
+      run "beta_diversity_through_plots.py -i #{file_biom} -m #{@options[:file_map]} -o #{dir_out} -t #{file_tree} -e #{@min_samples} -a -O #{@options[:cpus]} -f"
     end
 
     def jackknifed_beta_diversity
@@ -423,7 +423,7 @@ module Qiime
       file_tree = "#{@options[:dir_out]}/otus/rep_set.tre"
       dir_out   = "#{@options[:dir_out]}/wf_jack"
       samples   = (@min_samples * 0.75).to_i
-      run "jackknifed_beta_diversity.py -i #{file_biom} -t #{file_tree} -m #{@options[:file_map]} -o #{dir_out} -e #{samples} -a -f"
+      run "jackknifed_beta_diversity.py -i #{file_biom} -t #{file_tree} -m #{@options[:file_map]} -o #{dir_out} -e #{samples} -a -O #{@options[:cpus]} -f"
     end
 
     def make_bootstrapped_tree
