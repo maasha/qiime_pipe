@@ -216,7 +216,11 @@ module Qiime
 
     def process_illumina
       dir_out = "#{@options[:dir_out]}/split_library_output"
-      run "process_illumina.rb -i #{@options[:dir_illumina]} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
+      if @options[:trim_primers]
+        run "process_illumina.rb --trim_primers -i #{@options[:dir_illumina]} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
+      else
+        run "process_illumina.rb -i #{@options[:dir_illumina]} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
+      end
     end
 
     def process_sff

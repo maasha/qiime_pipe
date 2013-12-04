@@ -50,7 +50,7 @@ OptionParser.new do |opts|
   end
 
   opts.on("--trim_primers", "Trim primers from reads prior to assembly") do |o|
-    options[:trim_forward] = o
+    options[:trim_primers] = o
   end
 
   opts.on("--min_len <int>", Integer, "Minimum sequence length (default 40)") do |o|

@@ -50,6 +50,10 @@ OptionParser.new do |opts|
     options[:chimera] = o
   end
 
+  opts.on("--trim_primers", "Trim primers from reads prior to assembly") do |o|
+    options[:trim_primers] = o
+  end
+
   opts.on("-M", "--catagory <string>", String, "Mapping catagory (mapping file column label") do |o| 
     options[:catagory] = o
   end
