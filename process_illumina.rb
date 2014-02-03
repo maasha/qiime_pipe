@@ -102,7 +102,13 @@ m.parse(options[:map_file]).column(:SampleID).each { |n| name_hash[n] = true }
 forward_primer = m.column(:LinkerPrimerSequence).first
 reverse_primer = m.column(:ReversePrimerSequence).first
 
-fastq_files = Dir.glob("#{options[:input_dir]}/*").select { |f| name_hash[File.basename(f).split('_').first] }
+fastq_files = Dir.glob("#{options[:input_dir]}/*.fastq*")
+
+raise "no files in input_dir: #{options[:input_dir]}" if fastq_files.empty?
+
+fastq_files.select! { |f| name_hash[File.basename(f).split('_').first.gsub("-", ".")] }
+
+raise "files in input_dir don't match mapping file" if fastq_files.empty?
 
 def sample_names(fastq_files)
   samples = Hash.new { |h, k| h[k] = {} }
