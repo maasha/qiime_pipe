@@ -124,6 +124,8 @@ def sample_names(fastq_files)
       prefix = $1
       pair   = $2
 
+      prefix.gsub!("-", ".")
+
       case pair
       when "R1" then samples[prefix.to_sym][:file1] = file
       when "R2" then samples[prefix.to_sym][:file2] = file
