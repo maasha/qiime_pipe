@@ -55,7 +55,7 @@ def option_parser(args)
       options[:chimera] = o
     end
 
-    opts.on("--parameters_file <file>", String, "QIIME parameters file") do |o|
+    opts.on("--file_parameters <file>", String, "QIIME parameters file") do |o|
       options[:file_parameters] = o
     end
 
