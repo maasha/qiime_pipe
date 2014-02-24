@@ -55,6 +55,10 @@ def option_parser(args)
       options[:chimera] = o
     end
 
+    opts.on("--parameters_file <file>", String, "QIIME parameters file") do |o|
+      options[:file_parameters] = o
+    end
+
     opts.on("--trim_primers", "Trim primers from reads prior to assembly") do |o|
       options[:trim_primers] = o
     end

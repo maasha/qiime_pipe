@@ -2,7 +2,8 @@ module Qiime
   require 'fileutils'
 
   # DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/Gold/gold.fa"
-  DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/gg_otus_4feb2011/rep_set/gg_97_otus_4feb2011.fasta"
+  # DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/gg_otus_4feb2011/rep_set/gg_97_otus_4feb2011.fasta"
+  DEFAULT_CHIMERA_DB   = "/home/maasha/Install/QIIME1.7/data/gg_otus_4feb2011/rep_set/v3_slice_97rep.fasta"
   DEFAULT_BARCODE_SIZE = 10
   DEFAULT_CPUS         = 1
 
@@ -354,7 +355,12 @@ module Qiime
       end
 
       dir_out = "#{@options[:dir_out]}/otus"
-      run "pick_de_novo_otus.py -i #{file_fasta} -o #{dir_out} -a -O #{@options[:cpus]} -f"
+
+      if @options[:file_parameters]
+        run "pick_de_novo_otus.py -p #{@options[:file_parameters]} -i #{file_fasta} -o #{dir_out} -a -O #{@options[:cpus]} -f"
+      else
+        run "pick_de_novo_otus.py -i #{file_fasta} -o #{dir_out} -a -O #{@options[:cpus]} -f"
+      end
     end
 
     def print_biom_table_summary
