@@ -136,8 +136,8 @@ module Qiime
 
       if @options[:file_sff]
         @options[:dataset_name] = File.basename(@options[:file_sff])
-      elsif @options[:dir_illumina]
-        @options[:dataset_name] = File.basename(@options[:dir_illumina])
+      elsif @options[:illumina_dirs]
+        @options[:dataset_name] = @options[:illumina_dirs].map { |dir| File.basename dir }.join(';')
       else
         raise "failed to set dataset_name"
       end
@@ -216,11 +216,12 @@ module Qiime
     end
 
     def process_illumina
+      dirs_in = @options[:illumina_dirs].join(',')
       dir_out = "#{@options[:dir_out]}/split_library_output"
       if @options[:trim_primers]
-        run "process_illumina.rb --trim_primers -i #{@options[:dir_illumina]} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
+        run "process_illumina.rb --trim_primers -i #{dirs_in} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
       else
-        run "process_illumina.rb -i #{@options[:dir_illumina]} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
+        run "process_illumina.rb -i #{dirs_in} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
       end
     end
 

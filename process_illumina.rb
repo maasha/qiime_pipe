@@ -21,8 +21,8 @@ OptionParser.new do |opts|
     exit
   end
 
-  opts.on("-i", "--input_dir <dir>", String, "Input directoy with FASTQ files") do |o|
-    options[:input_dir] = o
+  opts.on("-i", "--input_dirs <dir>[,<dir>[,<dir>]] ...", Array, "Input directories with FASTQ files") do |o|
+    options[:input_dirs] = o
   end
 
   opts.on("-m", "--map_file <file>", String, "Mapping file to process") do |o|
@@ -66,10 +66,13 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-raise OptionParser::MissingArgument, "No input directory specified."  unless options[:input_dir]
-raise OptionParser::MissingArgument, "No mapping file specified."     unless options[:map_file]
-raise OptionParser::MissingArgument, "No output directory specified." unless options[:output_dir]
-raise OptionParser::InvalidArgument, "No no such directory: #{options[:input_dir]}" unless File.directory? options[:input_dir]
+raise OptionParser::MissingArgument, "No input directories specified." unless options[:input_dirs]
+raise OptionParser::MissingArgument, "No mapping file specified."      unless options[:map_file]
+raise OptionParser::MissingArgument, "No output directory specified."  unless options[:output_dir]
+
+options[:input_dirs].each do |dir|
+  raise OptionParser::InvalidArgument, "No no such input directory: #{dir}" unless File.directory? dir
+end
 
 if File.directory? options[:output_dir]
   if options[:force]
@@ -102,13 +105,13 @@ m.parse(options[:map_file]).column(:SampleID).each { |n| name_hash[n] = true }
 forward_primer = m.column(:LinkerPrimerSequence).first
 reverse_primer = m.column(:ReversePrimerSequence).first
 
-fastq_files = Dir.glob("#{options[:input_dir]}/*.fastq*")
+fastq_files = options[:input_dirs].inject([]) { |memo, obj| memo += Dir.glob("#{obj}/*.fastq*") }
 
-raise "no files in input_dir: #{options[:input_dir]}" if fastq_files.empty?
+raise "no files in input_dirs: #{options[:input_dirs]}" if fastq_files.empty?
 
 fastq_files.select! { |f| name_hash[File.basename(f).split('_').first.gsub("-", ".")] }
 
-raise "files in input_dir don't match mapping file" if fastq_files.empty?
+raise "files in input_dirs don't match mapping file" if fastq_files.empty?
 
 def sample_names(fastq_files)
   samples = Hash.new { |h, k| h[k] = {} }

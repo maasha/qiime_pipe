@@ -27,8 +27,8 @@ def option_parser(args)
       options[:file_sff] = o
     end
 
-    opts.on("-i", "--dir_illumina <dir>", String, "Illumina directory to process") do |o|
-      options[:dir_illumina] = o
+    opts.on("-i", "--illumina_dirs <dir>[,<dir>[,<dir]] ...", Array, "Illumina directories to process") do |o|
+      options[:illumina_dirs] = o
     end
 
     opts.on("-m", "--file_map <file>", String, "Mapping file to process") do |o|
@@ -114,16 +114,18 @@ if options[:file_map] and not File.file? options[:file_map]
   raise OptionParser::InvalidOption, "no such file: #{options[:file_map]}"
 end
 
-unless options[:file_sff] or options[:dir_illumina]
-  raise OptionParser::MissingArgument, "--file_sff or --dir_illumina must be specified"
+unless options[:file_sff] or options[:illumina_dirs]
+  raise OptionParser::MissingArgument, "--file_sff or --illumina_dirs must be specified"
 end
 
 if options[:sff_file] and not File.file?(options[:file_sff])
   raise OptionParser::InvalidOption, "no such file: #{options[:file_sff]}"
 end
 
-if options[:dir_illumina] and not File.directory?(options[:dir_illumina])
-  raise OptionParser::InvalidOption, "no such directory: #{options[:dir_illumina]}"
+if options[:illumina_dirs]
+  options[:illumina_dirs].each do |dir|
+    raise OptionParser::InvalidOption, "no such directory: #{dir}" unless File.directory? dir
+  end
 end
 
 raise OptionParser::MissingArgument, "--dir_out"  if options[:dir_out].nil?
@@ -137,7 +139,7 @@ q.print_qiime_config
 q.load_remote_mapping_file     if options[:remote_map]
 q.check_id_map
 q.process_sff                  if options[:file_sff]
-q.process_illumina             if options[:dir_illumina]
+q.process_illumina             if options[:illumina_dirs]
 q.split_libraries              if options[:file_sff]
 q.denoiser_preprocessor        if options[:denoise]
 q.denoiser                     if options[:denoise]
@@ -160,7 +162,7 @@ if options[:email]
   if options[:file_sff]
     project = File.basename(options[:file_sff])
   else
-    project = options[:dir_illumina]
+    project = options[:illumina_dirs].inspect
   end
 
   q.send_mail("Finished: #{project}")
