@@ -122,6 +122,10 @@ if options[:sff_file] and not File.file?(options[:file_sff])
   raise OptionParser::InvalidOption, "no such file: #{options[:file_sff]}"
 end
 
+if options[:file_parameters] and not File.file?(options[:file_parameters])
+  raise OptionParser::InvalidOption, "no such file: #{options[:file_parameters]}"
+end
+
 if options[:illumina_dirs]
   options[:illumina_dirs].each do |dir|
     raise OptionParser::InvalidOption, "no such directory: #{dir}" unless File.directory? dir
