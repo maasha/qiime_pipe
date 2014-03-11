@@ -3,7 +3,7 @@ module Qiime
 
   # DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/Gold/gold.fa"
   # DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/gg_otus_4feb2011/rep_set/gg_97_otus_4feb2011.fasta"
-  DEFAULT_CHIMERA_DB   = "/home/maasha/Install/QIIME1.7/data/gg_otus_4feb2011/rep_set/v3_slice_97rep.fasta"
+  DEFAULT_CHIMERA_DB   = "/home/maasha/Install/QIIME1.7/data/gg_otus_4feb2011/rep_set/v4_slice_97rep.fasta"
   DEFAULT_BARCODE_SIZE = 10
   DEFAULT_CPUS         = 1
 
