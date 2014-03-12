@@ -41,6 +41,10 @@ OptionParser.new do |opts|
     options[:cpus] = o
   end
 
+  opts.on("-p", "--parameter_file <file>", String, "QIIME style paramter file") do |o|
+    options[:parameter_file] = o
+  end
+
   opts.on("--trim_qual <int>", Integer, "Minimum quality (default 20)") do |o|
     options[:trim_qual] = o
   end
@@ -85,18 +89,38 @@ else
   FileUtils.mkdir options[:output_dir]
 end
 
+options[:cpus]           ||= 1
+
+if options[:parameter_file]
+  raise OptionParser::InvalidArgument, "No no such parameter_file: #{options[:parameter_file]}" unless File.file? options[:parameter_file]
+
+  File.open options[:parameter_file] do |ios|
+    ios.each do |line|
+      line.chomp!
+
+      script, leftover = line.split ':'
+      option, value    = leftover.split /\s+/
+
+      if script == File.basename(__FILE__).sub(/.rb$/, '')
+        options[option.to_sym] ||= value
+      end
+    end
+  end
+end
+
+options[:overlap_min]    ||= 15
+options[:mismatches_max] ||= 20
+options[:trim_qual]      ||= 20
+options[:trim_len]       ||= 3
+options[:min_len]        ||= 40
+
 options[:log_dir] = File.join(options[:output_dir], "log")
 FileUtils.mkdir options[:log_dir]
 
 options[:seq_dir] = File.join(options[:output_dir], "seq")
 FileUtils.mkdir options[:seq_dir]
 
-options[:overlap_min]    ||= 15
-options[:mismatches_max] ||= 20
-options[:trim_qual]      ||= 20
-options[:trim_len]       ||= 3
-options[:cpus]           ||= 1
-options[:min_len]        ||= 40
+# Running
 
 name_hash = {}
 m = Qiime::MapFile.new
