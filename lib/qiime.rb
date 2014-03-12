@@ -506,6 +506,8 @@ module Qiime
     def run_status(cmd)
       if cmd =~ /^sffinfo/   # sffinfo is used multiple times so we use the whole string to check
         cmd_str = cmd
+      elsif cmd =~ /^mkdir/  # mkdir may be used multiuple times so same as above
+        cmd_str = cmd
       else
         cmd_str = cmd.split(" ").first
       end
