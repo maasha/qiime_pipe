@@ -61,7 +61,7 @@ OptionParser.new do |opts|
     options[:min_len] = o
   end
 
-  opts.on("--mismatches_max <int>", Integer, "Maximum number of mismatches in percent (default 5)") do |o|
+  opts.on("--mismatches_max <int>", Integer, "Maximum number of mismatches in percent (default 20)") do |o|
     options[:mismatches_max] = o
   end
 
