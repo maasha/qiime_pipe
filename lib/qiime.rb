@@ -9,6 +9,18 @@ module Qiime
 
   class QiimeError < StandardError; end
 
+  class ParameterFile
+    def initialize(options)
+      @options     = options
+    end
+
+    def expand_relevant_parameters
+      pp @options
+      exit
+    end
+
+  end
+
   class MapFile
     def initialize
       @mapping_header = []
@@ -21,7 +33,7 @@ module Qiime
       got_header = false
 
       File.open(file, 'r') do |ios|
-        ios.each do |line|
+OA        ios.each do |line|
           line.gsub!(/\r/, "\n")
 
           if line[0] == '#'
@@ -343,6 +355,8 @@ module Qiime
     end
 
     def pick_de_novo_otus
+      l = ParameterFile.new(@options)
+      l.expand_relevant_parameters
       if @options[:merge]   # merging datasets
         file_fasta = "#{@options[:dir_out]}/merged.fasta"
       elsif @options[:chimera]
@@ -356,10 +370,24 @@ module Qiime
       end
 
       dir_out = "#{@options[:dir_out]}/otus"
-
+      picking_method = "uclust"
+      alignment_method = "pynast"
+      classification_method = "rdp"
       if @options[:file_parameters]
-        run "pick_de_novo_otus.py -p #{@options[:file_parameters]} -i #{file_fasta} -o #{dir_out} -a -O #{@options[:cpus]} -f"
-      else
+        #run "pick_de_novo_otus.py -p #{@options[:file_parameters]} -i #{file_fasta} -o #{dir_out} -a -O #{@options[:cpus]} -f"
+        run "pick_otus.py -i #{file_fasta} -m #{picking_method} -o #{dir_out}/#{picking_method}_picked_otus/" #TODO: manually parse parameters as pick_otus.py does not support parameter files
+        run "mkdir #{dir_out}/rep_set/"
+        run "pick_rep_set.py -i #{dir_out}/#{picking_method}_picked_otus/seqs_otus.txt -f #{file_fasta} -o #{dir_out}/rep_set/rep_set.fasta" 
+        
+        if !@options[:notree]
+          run "align_seqs.py -i #{dir_out}/rep_set/rep_set.fasta  -o #{dir_out}/#{alignment_method}_aligned/ -m #{alignment_method}"
+          run "filter_alignment.py -i #{dir_out}/#{alignment_method}_aligned/rep_set_aligned.fasta   -o #{dir_out}/#{alignment_method}_aligned/ "
+          run "make_phylogeny.py -i #{dir_out}/#{alignment_method}_aligned/rep_set_aligned_pfiltered.fasta -o #{dir_out}/rep_set.tre"
+        end
+        run "assign_taxonomy.py -i #{dir_out}/rep_set/rep_set.fasta  -o #{dir_out}/rdp_assigned_taxonomy/"
+        run "make_otu_table.py -i #{dir_out}/#{picking_method}_picked_otus/seqs_otus.txt -t #{dir_out}/#{classification_method}_assigned_taxonomy/rep_set_tax_assignments.txt -o #{dir_out}/otu_table.biom"
+
+     else
         run "pick_de_novo_otus.py -i #{file_fasta} -o #{dir_out} -a -O #{@options[:cpus]} -f"
       end
     end
