@@ -3,7 +3,7 @@ module Qiime
 
   # DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/Gold/gold.fa"
   # DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/gg_otus_4feb2011/rep_set/gg_97_otus_4feb2011.fasta"
-  DEFAULT_CHIMERA_DB   = "/home/maasha/Install/QIIME1.7/data/gg_otus_4feb2011/rep_set/v3_slice_97rep.fasta"
+  DEFAULT_CHIMERA_DB   = "/home/maasha/Install/QIIME1.7/data/gg_otus_4feb2011/rep_set/v4_slice_97rep.fasta"
   DEFAULT_BARCODE_SIZE = 10
   DEFAULT_CPUS         = 1
 
@@ -533,6 +533,8 @@ OA        ios.each do |line|
 
     def run_status(cmd)
       if cmd =~ /^sffinfo/   # sffinfo is used multiple times so we use the whole string to check
+        cmd_str = cmd
+      elsif cmd =~ /^mkdir/  # mkdir may be used multiuple times so same as above
         cmd_str = cmd
       else
         cmd_str = cmd.split(" ").first
