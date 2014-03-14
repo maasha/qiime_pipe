@@ -71,17 +71,14 @@ def option_parser(args)
       options[:catagory] = o
     end
 
-    options[:chimera_db] = Qiime::DEFAULT_CHIMERA_DB
     opts.on("-D", "--chimera_db <file>", String, "Chimere database (#{Qiime::DEFAULT_CHIMERA_DB})") do |o|
-      options[:chimera_db] = o || Qiime::DEFAULT_CHIMERA_DB
+      options[:chimera_db] = o || Qiime::DEFAULT_CHIMERA_DB #TODO: removing this default doesnt work for some reason
     end
 
-    options[:barcode_size] = Qiime::DEFAULT_BARCODE_SIZE
     opts.on("-b", "--barcode_size <int>", Integer, "Size of barcodes used (#{Qiime::DEFAULT_BARCODE_SIZE})") do |o|
       options[:barcode_size] = o
     end
 
-    options[:cpus] = Qiime::DEFAULT_CPUS
     opts.on("-C", "--cpus <int>", Integer, "Number of CPUs to use (#{Qiime::DEFAULT_CPUS})") do |o|
       options[:cpus] = o
     end
@@ -136,7 +133,28 @@ if options[:illumina_dirs]
   end
 end
 
+#This option cannot be overwritten by parameter files, as in process_illumina.rb
+options[:cpus] ||= Qiime::DEFAULT_CPUS 
+
 raise OptionParser::MissingArgument, "--dir_out"  if options[:dir_out].nil?
+if options[:parameter_file]
+  raise OptionParser::InvalidArgument, "No no such parameter_file: #{options[:parameter_file]}" unless File.file? options[:parameter_file]
+
+  File.open options[:parameter_file] do |ios|
+    ios.each do |line|
+      line.chomp!
+
+      script, leftover = line.split ':'
+      option, value    = leftover.split /\s+/
+
+      if script == File.basename(__FILE__).sub(/.rb$/, '')
+        options[option.to_sym] ||= value
+      end
+    end
+  end
+end
+options[:chimera_db] ||= Qiime::DEFAULT_CHIMERA_DB
+options[:barcode_size] ||= Qiime::DEFAULT_BARCODE_SIZE
 
 q = Qiime::Pipeline.new(options)
 q.log_delete                   if options[:force]
