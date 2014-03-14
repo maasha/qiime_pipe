@@ -19,6 +19,10 @@ def option_parser(args)
       exit
     end
 
+    opts.on("--notree", "Skip alignment and tree building") do |o|
+      options[:notree] = o
+    end
+
     opts.on("--restart <log file>", "Restart job") do |o|
       options[:restart] = o
     end
@@ -55,15 +59,15 @@ def option_parser(args)
       options[:chimera] = o
     end
 
-    opts.on("--file_parameters <file>", String, "QIIME parameters file") do |o|
-      options[:file_parameters] = o
+    opts.on("--parameter_file <file>", String, "QIIME parameters file") do |o|
+      options[:parameter_file] = o
     end
 
     opts.on("--trim_primers", "Trim primers from reads prior to assembly") do |o|
       options[:trim_primers] = o
     end
 
-    opts.on("-M", "--catagory <string>", String, "Mapping catagory (mapping file column label") do |o| 
+    opts.on("-M", "--category <string>", String, "Mapping category (mapping file column label") do |o| 
       options[:catagory] = o
     end
 
