@@ -19,6 +19,10 @@ def option_parser(args)
       exit
     end
 
+    opts.on("--nofigures", "Skip figure generation") do |o|
+      options[:nofigures] = o
+    end
+
     opts.on("--notree", "Skip alignment and tree building") do |o|
       options[:notree] = o
     end
@@ -174,15 +178,17 @@ q.identify_chimeric_seq        if options[:chimera]
 q.filter_fasta                 if options[:chimera]
 #q.chimera_check                if options[:chimera]
 q.pick_de_novo_otus
-q.print_biom_table_summary
-q.make_otu_heatmap_html
-q.make_otu_network
-q.wf_taxa_summary
-q.alpha_diversity
-q.beta_diversity_through_plots
-q.jackknifed_beta_diversity
-q.make_bootstrapped_tree
-q.make_3d_plots
+if !options[:nofigures]
+  q.print_biom_table_summary
+  q.make_otu_heatmap_html
+  q.make_otu_network
+  q.wf_taxa_summary
+  q.alpha_diversity
+  q.beta_diversity_through_plots
+  q.jackknifed_beta_diversity
+  q.make_bootstrapped_tree
+  q.make_3d_plots
+end
 
 if options[:email]
   if options[:file_sff]
