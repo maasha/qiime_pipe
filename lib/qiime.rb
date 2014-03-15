@@ -14,8 +14,21 @@ module Qiime
       @options     = options
     end
 
-    def expand_relevant_parameters
-      pp @options
+    def expand_relevant_parameters(command)
+      ret = ""
+      File.open @options[:parameter_file] do |ios|
+        ios.each do |line|
+          line.chomp!
+
+          script, leftover = line.split ':'
+          option, value    = leftover.split /\s+/
+
+          if script == command.chomp(File.extname(command))
+            ret = ret + " --" + option + " " + value + " "  
+          end
+        end
+      end
+      return ret
       exit
     end
 
@@ -146,6 +159,9 @@ OA        ios.each do |line|
       @file_log    = @options[:dir_out] + ".log"
       @min_samples = 0
 
+      if @options[:parameter_file]
+              @param = ParameterFile.new(@options)
+      end
       if @options[:file_sff]
         @options[:dataset_name] = File.basename(@options[:file_sff])
       elsif @options[:illumina_dirs]
@@ -355,8 +371,6 @@ OA        ios.each do |line|
     end
 
     def pick_de_novo_otus
-      l = ParameterFile.new(@options)
-      l.expand_relevant_parameters
       if @options[:merge]   # merging datasets
         file_fasta = "#{@options[:dir_out]}/merged.fasta"
       elsif @options[:chimera]
@@ -368,28 +382,25 @@ OA        ios.each do |line|
           file_fasta = "#{@options[:dir_out]}/split_library_output/seqs.fna"
         end
       end
-
+      
       dir_out = "#{@options[:dir_out]}/otus"
       picking_method = "uclust"
       alignment_method = "pynast"
       classification_method = "rdp"
-      if @options[:file_parameters]
-        #run "pick_de_novo_otus.py -p #{@options[:file_parameters]} -i #{file_fasta} -o #{dir_out} -a -O #{@options[:cpus]} -f"
-        run "pick_otus.py -i #{file_fasta} -m #{picking_method} -o #{dir_out}/#{picking_method}_picked_otus/" #TODO: manually parse parameters as pick_otus.py does not support parameter files
-        run "mkdir #{dir_out}/rep_set/"
-        run "pick_rep_set.py -i #{dir_out}/#{picking_method}_picked_otus/seqs_otus.txt -f #{file_fasta} -o #{dir_out}/rep_set/rep_set.fasta" 
+      filename = File.basename(file_fasta)
+      filename = filename.chomp(File.extname(filename))
+
+      run "pick_otus.py -i #{file_fasta} -m #{picking_method} -o #{dir_out}/#{picking_method}_picked_otus/"
+      run "mkdir #{dir_out}/rep_set/"
+      run "pick_rep_set.py -i #{dir_out}/#{picking_method}_picked_otus/#{filename}_otus.txt -f #{file_fasta} -o #{dir_out}/rep_set/rep_set.fasta" 
         
         if !@options[:notree]
-          run "align_seqs.py -i #{dir_out}/rep_set/rep_set.fasta  -o #{dir_out}/#{alignment_method}_aligned/ -m #{alignment_method}"
+          run "parallel_align_seqs_pynast.py -i #{dir_out}/rep_set/rep_set.fasta  -o #{dir_out}/#{alignment_method}_aligned/ -O #{@options[:cpus]}" #FIXME: This is not awesome because it limits alignment options to pynast, but align_seqs.py does not support parallelism, and we usually do pynast or no alignments anyway, so the clumsy logic needed to support this is postponed 
           run "filter_alignment.py -i #{dir_out}/#{alignment_method}_aligned/rep_set_aligned.fasta   -o #{dir_out}/#{alignment_method}_aligned/ "
           run "make_phylogeny.py -i #{dir_out}/#{alignment_method}_aligned/rep_set_aligned_pfiltered.fasta -o #{dir_out}/rep_set.tre"
         end
-        run "assign_taxonomy.py -i #{dir_out}/rep_set/rep_set.fasta  -o #{dir_out}/rdp_assigned_taxonomy/"
-        run "make_otu_table.py -i #{dir_out}/#{picking_method}_picked_otus/seqs_otus.txt -t #{dir_out}/#{classification_method}_assigned_taxonomy/rep_set_tax_assignments.txt -o #{dir_out}/otu_table.biom"
-
-     else
-        run "pick_de_novo_otus.py -i #{file_fasta} -o #{dir_out} -a -O #{@options[:cpus]} -f"
-      end
+      run "parallel_assign_taxonomy_rdp.py -i #{dir_out}/rep_set/rep_set.fasta  -o #{dir_out}/rdp_assigned_taxonomy/ -O #{@options[:cpus]}"#FXIME: This has the same problem as above but is much more problematic
+      run "make_otu_table.py -i #{dir_out}/#{picking_method}_picked_otus/#{filename}_otus.txt -t #{dir_out}/#{classification_method}_assigned_taxonomy/rep_set_tax_assignments.txt -o #{dir_out}/otu_table.biom"
     end
 
     def print_biom_table_summary
@@ -498,8 +509,14 @@ OA        ios.each do |line|
     private
 
     def run(cmd)
-      print "Running: #{cmd} ... "
 
+
+#Expands parameters to the commandline 
+#TODO: This needs translation rules that can pass parameters to the parallel version of the programs and vice versa
+      program = cmd.split(" ")[0]
+      cmd = cmd + @param.expand_relevant_parameters(program)
+
+      print "Running: #{cmd} ... "
       if ok? cmd
         puts "SKIPPING"
       else
