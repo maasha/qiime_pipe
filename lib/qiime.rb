@@ -9,6 +9,31 @@ module Qiime
 
   class QiimeError < StandardError; end
 
+  class ParameterFile
+    def initialize(options)
+      @options     = options
+    end
+
+    def expand_relevant_parameters(command)
+      ret = ""
+      File.open @options[:parameter_file] do |ios|
+        ios.each do |line|
+          line.chomp!
+
+          script, leftover = line.split ':'
+          option, value    = leftover.split /\s+/
+
+          if script == command.chomp(File.extname(command))
+            ret = ret + " --" + option + " " + value + " "  
+          end
+        end
+      end
+      return ret
+      exit
+    end
+
+  end
+
   class MapFile
     def initialize
       @mapping_header = []
@@ -21,7 +46,7 @@ module Qiime
       got_header = false
 
       File.open(file, 'r') do |ios|
-        ios.each do |line|
+OA        ios.each do |line|
           line.gsub!(/\r/, "\n")
 
           if line[0] == '#'
@@ -134,6 +159,9 @@ module Qiime
       @file_log    = @options[:dir_out] + ".log"
       @min_samples = 0
 
+      if @options[:parameter_file]
+              @param = ParameterFile.new(@options)
+      end
       if @options[:file_sff]
         @options[:dataset_name] = File.basename(@options[:file_sff])
       elsif @options[:illumina_dirs]
@@ -354,14 +382,25 @@ module Qiime
           file_fasta = "#{@options[:dir_out]}/split_library_output/seqs.fna"
         end
       end
-
+      
       dir_out = "#{@options[:dir_out]}/otus"
+      picking_method = "uclust"
+      alignment_method = "pynast"
+      classification_method = "rdp"
+      filename = File.basename(file_fasta)
+      filename = filename.chomp(File.extname(filename))
 
-      if @options[:file_parameters]
-        run "pick_de_novo_otus.py -p #{@options[:file_parameters]} -i #{file_fasta} -o #{dir_out} -a -O #{@options[:cpus]} -f"
-      else
-        run "pick_de_novo_otus.py -i #{file_fasta} -o #{dir_out} -a -O #{@options[:cpus]} -f"
-      end
+      run "pick_otus.py -i #{file_fasta} -m #{picking_method} -o #{dir_out}/#{picking_method}_picked_otus/"
+      run "mkdir #{dir_out}/rep_set/"
+      run "pick_rep_set.py -i #{dir_out}/#{picking_method}_picked_otus/#{filename}_otus.txt -f #{file_fasta} -o #{dir_out}/rep_set/rep_set.fasta" 
+        
+        if !@options[:notree]
+          run "parallel_align_seqs_pynast.py -i #{dir_out}/rep_set/rep_set.fasta  -o #{dir_out}/#{alignment_method}_aligned/ -O #{@options[:cpus]}" #FIXME: This is not awesome because it limits alignment options to pynast, but align_seqs.py does not support parallelism, and we usually do pynast or no alignments anyway, so the clumsy logic needed to support this is postponed 
+          run "filter_alignment.py -i #{dir_out}/#{alignment_method}_aligned/rep_set_aligned.fasta   -o #{dir_out}/#{alignment_method}_aligned/ "
+          run "make_phylogeny.py -i #{dir_out}/#{alignment_method}_aligned/rep_set_aligned_pfiltered.fasta -o #{dir_out}/rep_set.tre"
+        end
+      run "parallel_assign_taxonomy_rdp.py -i #{dir_out}/rep_set/rep_set.fasta  -o #{dir_out}/rdp_assigned_taxonomy/ -O #{@options[:cpus]}"#FXIME: This has the same problem as above but is much more problematic
+      run "make_otu_table.py -i #{dir_out}/#{picking_method}_picked_otus/#{filename}_otus.txt -t #{dir_out}/#{classification_method}_assigned_taxonomy/rep_set_tax_assignments.txt -o #{dir_out}/otu_table.biom"
     end
 
     def print_biom_table_summary
@@ -470,8 +509,14 @@ module Qiime
     private
 
     def run(cmd)
-      print "Running: #{cmd} ... "
 
+
+#Expands parameters to the commandline 
+#TODO: This needs translation rules that can pass parameters to the parallel version of the programs and vice versa
+      program = cmd.split(" ")[0]
+      cmd = cmd + @param.expand_relevant_parameters(program)
+
+      print "Running: #{cmd} ... "
       if ok? cmd
         puts "SKIPPING"
       else
