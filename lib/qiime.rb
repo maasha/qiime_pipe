@@ -11,7 +11,7 @@ module Qiime
 
   class ParameterFile
     def initialize(options)
-      @options     = options
+      @options = options
     end
 
     def expand_relevant_parameters(command)
@@ -31,7 +31,6 @@ module Qiime
       return ret
       exit
     end
-
   end
 
   class MapFile
@@ -46,7 +45,7 @@ module Qiime
       got_header = false
 
       File.open(file, 'r') do |ios|
-OA        ios.each do |line|
+        ios.each do |line|
           line.gsub!(/\r/, "\n")
 
           if line[0] == '#'
@@ -160,8 +159,9 @@ OA        ios.each do |line|
       @min_samples = 0
 
       if @options[:parameter_file]
-              @param = ParameterFile.new(@options)
+        @param = ParameterFile.new(@options)
       end
+
       if @options[:file_sff]
         @options[:dataset_name] = File.basename(@options[:file_sff])
       elsif @options[:illumina_dirs]
@@ -399,7 +399,7 @@ OA        ios.each do |line|
           run "filter_alignment.py -i #{dir_out}/#{alignment_method}_aligned/rep_set_aligned.fasta   -o #{dir_out}/#{alignment_method}_aligned/ "
           run "make_phylogeny.py -i #{dir_out}/#{alignment_method}_aligned/rep_set_aligned_pfiltered.fasta -o #{dir_out}/rep_set.tre"
         end
-      run "parallel_assign_taxonomy_rdp.py -i #{dir_out}/rep_set/rep_set.fasta  -o #{dir_out}/rdp_assigned_taxonomy/ -O #{@options[:cpus]}"#FXIME: This has the same problem as above but is much more problematic
+      run "parallel_assign_taxonomy_rdp.py -i #{dir_out}/rep_set/rep_set.fasta  -o #{dir_out}/rdp_assigned_taxonomy/ -O #{@options[:cpus]}" #FIXME: This has the same problem as above but is much more problematic
       run "make_otu_table.py -i #{dir_out}/#{picking_method}_picked_otus/#{filename}_otus.txt -t #{dir_out}/#{classification_method}_assigned_taxonomy/rep_set_tax_assignments.txt -o #{dir_out}/otu_table.biom"
     end
 
