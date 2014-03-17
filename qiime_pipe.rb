@@ -19,6 +19,14 @@ def option_parser(args)
       exit
     end
 
+    opts.on("--nofigures", "Skip figure generation") do |o|
+      options[:nofigures] = o
+    end
+
+    opts.on("--notree", "Skip alignment and tree building") do |o|
+      options[:notree] = o
+    end
+
     opts.on("--restart <log file>", "Restart job") do |o|
       options[:restart] = o
     end
@@ -55,29 +63,26 @@ def option_parser(args)
       options[:chimera] = o
     end
 
-    opts.on("--file_parameters <file>", String, "QIIME parameters file") do |o|
-      options[:file_parameters] = o
+    opts.on("--parameter_file <file>", String, "QIIME parameters file") do |o|
+      options[:parameter_file] = o
     end
 
     opts.on("--trim_primers", "Trim primers from reads prior to assembly") do |o|
       options[:trim_primers] = o
     end
 
-    opts.on("-M", "--catagory <string>", String, "Mapping catagory (mapping file column label") do |o| 
+    opts.on("-M", "--category <string>", String, "Mapping category (mapping file column label") do |o| 
       options[:catagory] = o
     end
 
-    options[:chimera_db] = Qiime::DEFAULT_CHIMERA_DB
     opts.on("-D", "--chimera_db <file>", String, "Chimere database (#{Qiime::DEFAULT_CHIMERA_DB})") do |o|
-      options[:chimera_db] = o || Qiime::DEFAULT_CHIMERA_DB
+      options[:chimera_db] = o || Qiime::DEFAULT_CHIMERA_DB #TODO: removing this default doesnt work for some reason
     end
 
-    options[:barcode_size] = Qiime::DEFAULT_BARCODE_SIZE
     opts.on("-b", "--barcode_size <int>", Integer, "Size of barcodes used (#{Qiime::DEFAULT_BARCODE_SIZE})") do |o|
       options[:barcode_size] = o
     end
 
-    options[:cpus] = Qiime::DEFAULT_CPUS
     opts.on("-C", "--cpus <int>", Integer, "Number of CPUs to use (#{Qiime::DEFAULT_CPUS})") do |o|
       options[:cpus] = o
     end
@@ -132,7 +137,28 @@ if options[:illumina_dirs]
   end
 end
 
+#This option cannot be overwritten by parameter files, as in process_illumina.rb
+options[:cpus] ||= Qiime::DEFAULT_CPUS 
+
 raise OptionParser::MissingArgument, "--dir_out"  if options[:dir_out].nil?
+if options[:parameter_file]
+  raise OptionParser::InvalidArgument, "No no such parameter_file: #{options[:parameter_file]}" unless File.file? options[:parameter_file]
+
+  File.open options[:parameter_file] do |ios|
+    ios.each do |line|
+      line.chomp!
+
+      script, leftover = line.split ':'
+      option, value    = leftover.split /\s+/
+
+      if script == File.basename(__FILE__).sub(/.rb$/, '')
+        options[option.to_sym] ||= value
+      end
+    end
+  end
+end
+options[:chimera_db] ||= Qiime::DEFAULT_CHIMERA_DB
+options[:barcode_size] ||= Qiime::DEFAULT_BARCODE_SIZE
 
 q = Qiime::Pipeline.new(options)
 q.log_delete                   if options[:force]
@@ -152,15 +178,17 @@ q.identify_chimeric_seq        if options[:chimera]
 q.filter_fasta                 if options[:chimera]
 #q.chimera_check                if options[:chimera]
 q.pick_de_novo_otus
-q.print_biom_table_summary
-q.make_otu_heatmap_html
-q.make_otu_network
-q.wf_taxa_summary
-q.alpha_diversity
-q.beta_diversity_through_plots
-q.jackknifed_beta_diversity
-q.make_bootstrapped_tree
-q.make_3d_plots
+if !options[:nofigures]
+  q.print_biom_table_summary
+  q.make_otu_heatmap_html
+  q.make_otu_network
+  q.wf_taxa_summary
+  q.alpha_diversity
+  q.beta_diversity_through_plots
+  q.jackknifed_beta_diversity
+  q.make_bootstrapped_tree
+  q.make_3d_plots
+end
 
 if options[:email]
   if options[:file_sff]
