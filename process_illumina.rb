@@ -272,6 +272,8 @@ Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
   File.open(File.join(options[:log_dir], "#{sample}.log"), 'w') do |ios|
     ios.puts [
       sample,
+      stats[:reads_total],
+      stats[:bases_total],
       stats[:e1_fprimer_found],
       stats[:e1_fprimer_miss],
       stats[:e1_bases_ok],
@@ -305,6 +307,8 @@ end
 
 File.open(File.join(options[:output_dir], "log.txt"), 'w') do |ios|
   ios.puts "#" + %w{sample
+    reads_total
+    bases_total
     e1_fprimer_found
     e1_fprimer_miss
     e1_bases_ok
