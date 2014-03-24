@@ -3,7 +3,7 @@ module Qiime
 
   # DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/Gold/gold.fa"
   # DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/gg_otus_4feb2011/rep_set/gg_97_otus_4feb2011.fasta"
-  DEFAULT_CHIMERA_DB   = "/home/maasha/Install/QIIME1.7/data/gg_otus_4feb2011/rep_set/v4_slice_97rep.fasta"
+  DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/gg_otus_4feb2011/rep_set/v4_slice_97rep.fasta"
   DEFAULT_BARCODE_SIZE = 10
   DEFAULT_CPUS         = 1
 
@@ -159,7 +159,7 @@ module Qiime
       @min_samples = 0
 
       if @options[:parameter_file]
-        @param = ParameterFile.new(@options)
+        @params = ParameterFile.new(@options)
       end
 
       if @options[:file_sff]
@@ -509,12 +509,12 @@ module Qiime
     private
 
     def run(cmd)
-
-
-#Expands parameters to the commandline 
-#TODO: This needs translation rules that can pass parameters to the parallel version of the programs and vice versa
-      program = cmd.split(" ")[0]
-      cmd = cmd + @param.expand_relevant_parameters(program)
+      if @params
+        #Expands parameters to the commandline 
+        #TODO: This needs translation rules that can pass parameters to the parallel version of the programs and vice versa
+        program = cmd.split(" ").first
+        cmd += @params.expand_relevant_parameters(program)
+      end
 
       print "Running: #{cmd} ... "
       if ok? cmd
