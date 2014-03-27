@@ -137,6 +137,7 @@ module Qiime
 
     def check_header(line)
       unless @mapping_header.empty?
+        line = line[1 .. -1]
         fields = line.chomp.split("\t")
 
         unless fields.size == @mapping_header.size
@@ -167,7 +168,7 @@ module Qiime
       elsif @options[:illumina_dirs]
         @options[:dataset_name] = @options[:illumina_dirs].map { |dir| File.basename dir }.join(';')
       else
-        raise "failed to set dataset_name"
+        @options[:dataset_name] = "unknown dataset"
       end
     end
 
