@@ -4,6 +4,7 @@ require 'pp'
 require 'optparse'
 require 'parallel'
 require 'maasha/fastq'
+require 'maasha/fasta'
 require 'maasha/seq/assemble'
 require_relative 'lib/qiime'
 
@@ -176,7 +177,8 @@ Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
 
   in1 = Fastq.open(files[:file1])
   in2 = Fastq.open(files[:file2])
-  out = Fastq.open(File.join(options[:seq_dir], "#{sample}.fna"), 'w')
+  fastq_out = Fastq.open(File.join(options[:seq_dir], "#{sample}.fq"), 'w')
+  fasta_out = Fasta.open(File.join(options[:seq_dir], "#{sample}.fna"), 'w')
 
   while entry1 = in1.get_entry and entry2 = in2.get_entry
     stats[:reads_total] += 2
@@ -210,7 +212,8 @@ Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
                 stats[:bases_assembled] += assembly.length
 
                 assembly.seq_name = sample.to_s.sub(/_S\d+_L\d{3}/, "") + "_#{count} " + assembly.seq_name
-                out.puts assembly.to_fasta
+                fasta_out.puts assembly.to_fasta
+                fastq_out.puts assembly.to_fastq
 
                 count += 1
               else
@@ -267,7 +270,8 @@ Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
 
   in1.close
   in2.close
-  out.close
+  fasta_out.close
+  fastq_out.close
 
   File.open(File.join(options[:log_dir], "#{sample}.log"), 'w') do |ios|
     ios.puts [
