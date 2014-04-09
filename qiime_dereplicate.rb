@@ -2,6 +2,7 @@
 
 require 'pp'
 require 'optparse'
+require 'google_hash'
 require 'maasha/fasta'
 require_relative 'lib/qiime'
 
@@ -23,12 +24,16 @@ OptionParser.new do |opts|
     options[:input] = o
   end
 
-  opts.on("-i", "--output <file>", String, "output file in FASTA format after depreplication") do |o|
+  opts.on("-o", "--output <file>", String, "output file in FASTA format after depreplication") do |o|
     options[:output] = o
   end
 
-  opts.on("-f", "--force", "force overwrite output file")
+  opts.on("-f", "--force", "force overwrite output file") do
     options[:force] = true
+  end
+
+  opts.on("-v", "--verbose", "verbose output") do
+    options[:verbose] = true
   end
 end.parse!
 
@@ -40,14 +45,16 @@ if File.file? options[:output] and not options[:force]
   raise OptionParser::InvalidArgument, "Output file exists: #{options[:output]} - use --force to overwrite"
 end
 
-hash = {}
+hash = GoogleHashDenseLongToInt.new
 
 Fasta.open(options[:output], 'w') do |output|
   Fasta.open(options[:input]) do |input|
-    input.each do |entry|
-      unless hash[entry.seq.to_sym]
+    input.each_with_index do |entry, i|
+      $stderr.puts "Read #{i} entries" if (i % 10000) == 0 and options[:verbose]
+      key = entry.seq.upcase.hash
+      unless hash[key]
         output.puts entry.to_fasta
-        hash[entry.seq.to_sym] = true
+        hash[key] = 1
       end
     end
   end
