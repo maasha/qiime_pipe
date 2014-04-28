@@ -254,6 +254,7 @@ Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
 
             assembly.seq_name = sample.to_s.sub(/_S\d+_L\d{3}/, "") + "_#{count} " + assembly.seq_name
             fasta_out.puts assembly.to_fasta
+            fastq_out.puts assembly.to_fastq
 
             count += 1
           else
