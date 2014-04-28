@@ -297,7 +297,8 @@ Parallel.each(samples, in_processes: options[:cpus]) do |sample, files|
   end
 end
 
-system("cat #{options[:seq_dir]}/* > #{options[:output_dir]}/seqs.fna")
+system("cat #{options[:seq_dir]}/*.fna > #{options[:output_dir]}/seqs.fna")
+system("cat #{options[:seq_dir]}/*.fq > #{options[:output_dir]}/seqs.fq")
 
 stats = []
 
