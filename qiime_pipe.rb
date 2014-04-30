@@ -12,7 +12,37 @@ def option_parser(args)
   options = {}
 
   OptionParser.new do |opts|
-    opts.banner = "Usage: #{File.basename(__FILE__)} [options]"
+    opts.banner = <<USAGE
+Description: #{File.basename(__FILE__)} is used to process a 16S RNA amplicon dataset using QIIME.
+  the dataset can either be a 454 dataset where the starting point is a SFF file or an Illumina
+  dataset where the starting point is a directory with demultiplexed FASTQ files.
+
+  Mapping files can be supplied either as text files or as remote mapping files using Google Docs:
+  http://qiime.org/tutorials/remote_mapping_files.html
+
+  Note that for processing Illumina data the SampleID column must match the FASTQ file prefix. Since
+  underscores '_' are not allowed in mapping files you must use dots '.' instead, however the #{File.basename(__FILE__)}
+  script will translate these when matching file prefixes.
+
+  The progress of the analysis will be recording the the <--dir_out>.log file that will also contain
+  the command and options used with #{File.basename(__FILE__)}.
+
+Usage: #{File.basename(__FILE__)} [options] <--illumina_dirs|--file_sff> <--remote_map|--file_map> <--dir_out>
+
+Examples:
+  Processing a 454 dataset:    
+    
+    #{File.basename(__FILE__)} -s GXS0P3T01.sff -m map_file.txt -o Result
+  
+  Processing an Illumina dataset:
+
+    #{File.basename(__FILE__)} -i Fastq/ -r 0AnzomiBiZW0ddDVrdENlNG5lTWpBTm5kNjRGbjVpQmc -o Result
+    
+  Restarting a stopped job:
+
+    #{File.basename(__FILE__)} --restart Result.log
+
+USAGE
 
     opts.on("-h", "--help", "Display this screen" ) do
       $stderr.puts opts
