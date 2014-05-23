@@ -398,7 +398,7 @@ module Qiime
         if !@options[:notree]
           run "parallel_align_seqs_pynast.py -i #{dir_out}/rep_set/rep_set.fasta  -o #{dir_out}/#{alignment_method}_aligned/ -O #{@options[:cpus]}" #FIXME: This is not awesome because it limits alignment options to pynast, but align_seqs.py does not support parallelism, and we usually do pynast or no alignments anyway, so the clumsy logic needed to support this is postponed 
           run "filter_alignment.py -i #{dir_out}/#{alignment_method}_aligned/rep_set_aligned.fasta   -o #{dir_out}/#{alignment_method}_aligned/ "
-          run "make_phylogeny.py -i #{dir_out}/#{alignment_method}_aligned/rep_set_aligned_pfiltered.fasta -o #{dir_out}/rep_set.tre"
+          run "make_phylogeny.py -i #{dir_out}/#{alignment_method}_aligned/rep_set_aligned_pfiltered.fasta -o #{dir_out}/rep_set.tre -r midpoint"
         end
       run "parallel_assign_taxonomy_rdp.py -i #{dir_out}/rep_set/rep_set.fasta  -o #{dir_out}/rdp_assigned_taxonomy/ -O #{@options[:cpus]}" #FIXME: This has the same problem as above but is much more problematic
       run "make_otu_table.py -i #{dir_out}/#{picking_method}_picked_otus/#{filename}_otus.txt -t #{dir_out}/#{classification_method}_assigned_taxonomy/rep_set_tax_assignments.txt -o #{dir_out}/otu_table.biom"
