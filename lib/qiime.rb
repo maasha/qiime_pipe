@@ -6,6 +6,7 @@ module Qiime
   DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/gg_otus_4feb2011/rep_set/v4_slice_97rep.fasta"
   DEFAULT_BARCODE_SIZE = 10
   DEFAULT_CPUS         = 1
+  DEFAULT_R_STARTER    = 'https://github.com/askerdb/amplicon_R_starter_pack.git'
 
   class QiimeError < StandardError; end
 
@@ -175,6 +176,23 @@ module Qiime
     def log_delete
       File.delete(@file_log) if File.file? @file_log
     end
+
+    def initialize_R_starter
+      cmd_clone = "git clone #{@options[:r_starter]} #{@options[:dir_out]}/R_starter_pack"
+      run cmd_clone
+
+      cmd_cp_biom = "cp #{@options[:dir_out]}/otus/otu_table.biom #{@options[:dir_out]}/R_starter_pack/"
+      run cmd_cp_biom
+
+      cmd_cp_map = "cp #{@options[:file_map]} #{@options[:dir_out]}/R_starter_pack/"
+      run cmd_cp_map
+
+      if File.file?("#{@options[:dir_out]}/otus/rep_set.tre")
+        cmd_cp_tre = "cp #{@options[:dir_out]}/otus/rep_set.tre #{@options[:dir_out]}/R_starter_pack/"
+        run cmd_cp_tre
+      end
+    end
+
 
     def log_init(cmd_init)
       unless File.file? @file_log
@@ -598,5 +616,8 @@ module Qiime
       
       checkpoints.last
     end
+    
+
+
   end
 end
