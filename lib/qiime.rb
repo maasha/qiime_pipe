@@ -498,7 +498,7 @@ module Qiime
     end
 
     def send_mail(subject)
-      cmd = %{cat #{@file_log} | mail -s "#{subject}" #{@options[:email]}}
+      cmd = %{(echo -n "Starting path:" ;pwd; cat #{@file_log}) | mail -s "#{subject}" #{@options[:email]}}
 
       system(cmd)
 
