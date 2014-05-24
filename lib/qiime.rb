@@ -572,6 +572,8 @@ module Qiime
         cmd_str = cmd
       elsif cmd =~ /^mkdir/  # mkdir may be used multiuple times so same as above
         cmd_str = cmd
+      elsif cmd =~ /^cp/
+        cmd_str = cmd
       else
         cmd_str = cmd.split(" ").first
       end
