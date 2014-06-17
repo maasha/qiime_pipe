@@ -6,6 +6,7 @@ module Qiime
   DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/gg_otus_4feb2011/rep_set/v4_slice_97rep.fasta"
   DEFAULT_BARCODE_SIZE = 10
   DEFAULT_CPUS         = 1
+  DEFAULT_R_STARTER    = 'https://github.com/askerdb/amplicon_R_starter_pack.git'
 
   class QiimeError < StandardError; end
 
@@ -176,6 +177,23 @@ module Qiime
       File.delete(@file_log) if File.file? @file_log
     end
 
+    def initialize_R_starter
+      cmd_clone = "git clone #{@options[:r_starter]} #{@options[:dir_out]}/R_starter_pack"
+      run cmd_clone
+
+      cmd_cp_biom = "cp #{@options[:dir_out]}/otus/otu_table.biom #{@options[:dir_out]}/R_starter_pack/"
+      run cmd_cp_biom
+
+      cmd_cp_map = "cp #{@options[:file_map]} #{@options[:dir_out]}/R_starter_pack/"
+      run cmd_cp_map
+
+      if File.file?("#{@options[:dir_out]}/otus/rep_set.tre")
+        cmd_cp_tre = "cp #{@options[:dir_out]}/otus/rep_set.tre #{@options[:dir_out]}/R_starter_pack/"
+        run cmd_cp_tre
+      end
+    end
+
+
     def log_init(cmd_init)
       unless File.file? @file_log
         File.open(@file_log, "w") do |ios|
@@ -248,9 +266,9 @@ module Qiime
       dirs_in = @options[:illumina_dirs].join(',')
       dir_out = "#{@options[:dir_out]}/split_library_output"
       if @options[:trim_primers]
-        run "process_illumina.rb --trim_primers -i #{dirs_in} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
+        run "./process_illumina.rb --trim_primers -i #{dirs_in} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
       else
-        run "process_illumina.rb -i #{dirs_in} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
+        run "./process_illumina.rb -i #{dirs_in} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
       end
     end
 
@@ -398,7 +416,7 @@ module Qiime
         if !@options[:notree]
           run "parallel_align_seqs_pynast.py -i #{dir_out}/rep_set/rep_set.fasta  -o #{dir_out}/#{alignment_method}_aligned/ -O #{@options[:cpus]}" #FIXME: This is not awesome because it limits alignment options to pynast, but align_seqs.py does not support parallelism, and we usually do pynast or no alignments anyway, so the clumsy logic needed to support this is postponed 
           run "filter_alignment.py -i #{dir_out}/#{alignment_method}_aligned/rep_set_aligned.fasta   -o #{dir_out}/#{alignment_method}_aligned/ "
-          run "make_phylogeny.py -i #{dir_out}/#{alignment_method}_aligned/rep_set_aligned_pfiltered.fasta -o #{dir_out}/rep_set.tre"
+          run "make_phylogeny.py -i #{dir_out}/#{alignment_method}_aligned/rep_set_aligned_pfiltered.fasta -o #{dir_out}/rep_set.tre -r midpoint"
         end
       run "parallel_assign_taxonomy_rdp.py -i #{dir_out}/rep_set/rep_set.fasta  -o #{dir_out}/rdp_assigned_taxonomy/ -O #{@options[:cpus]}" #FIXME: This has the same problem as above but is much more problematic
       run "make_otu_table.py -i #{dir_out}/#{picking_method}_picked_otus/#{filename}_otus.txt -t #{dir_out}/#{classification_method}_assigned_taxonomy/rep_set_tax_assignments.txt -o #{dir_out}/otu_table.biom"
@@ -498,7 +516,7 @@ module Qiime
     end
 
     def send_mail(subject)
-      cmd = %{cat #{@file_log} | mail -s "#{subject}" #{@options[:email]}}
+      cmd = %{(echo -n "Starting path:" ;pwd; cat #{@file_log}) | mail -s "#{subject}" #{@options[:email]}}
 
       system(cmd)
 
@@ -554,6 +572,8 @@ module Qiime
         cmd_str = cmd
       elsif cmd =~ /^mkdir/  # mkdir may be used multiuple times so same as above
         cmd_str = cmd
+      elsif cmd =~ /^cp/
+        cmd_str = cmd
       else
         cmd_str = cmd.split(" ").first
       end
@@ -598,5 +618,8 @@ module Qiime
       
       checkpoints.last
     end
+    
+
+
   end
 end

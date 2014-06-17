@@ -105,7 +105,7 @@ USAGE
       options[:catagory] = o
     end
 
-    opts.on("-D", "--chimera_db <file>", String, "Chimere database (#{Qiime::DEFAULT_CHIMERA_DB})") do |o|
+    opts.on("-D", "--chimera_db <file>", String, "Chimera database (#{Qiime::DEFAULT_CHIMERA_DB})") do |o|
       options[:chimera_db] = o || Qiime::DEFAULT_CHIMERA_DB #TODO: removing this default doesnt work for some reason
     end
 
@@ -115,6 +115,10 @@ USAGE
 
     opts.on("-C", "--cpus <int>", Integer, "Number of CPUs to use (#{Qiime::DEFAULT_CPUS})") do |o|
       options[:cpus] = o
+    end
+
+    opts.on("-R", "--r_starter <git url>", String, "Git URL for cloning the R starter pack (#{Qiime::DEFAULT_R_STARTER})") do |o|
+      options[:r_starter] = o || Qiime::DEFAULT_R_STARTER
     end
 
     opts.on("-e", "--email <string>", String, "Send email alert") do |o| 
@@ -189,6 +193,8 @@ if options[:parameter_file]
 end
 options[:chimera_db] ||= Qiime::DEFAULT_CHIMERA_DB
 options[:barcode_size] ||= Qiime::DEFAULT_BARCODE_SIZE
+options[:r_starter] ||= Qiime::DEFAULT_R_STARTER
+
 
 q = Qiime::Pipeline.new(options)
 q.log_delete                   if options[:force]
@@ -220,6 +226,7 @@ if !options[:nofigures]
   q.make_3d_plots
 end
 
+q.initialize_R_starter
 if options[:email]
   if options[:file_sff]
     project = File.basename(options[:file_sff])
