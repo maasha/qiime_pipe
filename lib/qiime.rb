@@ -265,10 +265,13 @@ module Qiime
     def process_illumina
       dirs_in = @options[:illumina_dirs].join(',')
       dir_out = "#{@options[:dir_out]}/split_library_output"
+      running_path = File.expand_path(File.dirname(__FILE__))
+      running_path =  running_path.split("/")[0...-1].join("/")
+      puts "---------------------------"
       if @options[:trim_primers]
-        run "./process_illumina.rb --trim_primers -i #{dirs_in} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
+        run "#{running_path}/process_illumina.rb --trim_primers -i #{dirs_in} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
       else
-        run "./process_illumina.rb -i #{dirs_in} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
+        run "#{running_path}/process_illumina.rb -i #{dirs_in} -m #{@options[:file_map]} -o #{dir_out} -C #{@options[:cpus]} -f"
       end
     end
 
