@@ -201,7 +201,7 @@ q.log_delete                   if options[:force]
 q.log_init(cmd_init)
 q.dir_delete                   if options[:force]
 q.dir_create
-q.print_qiime_config
+# q.print_qiime_config  # disabled because of useach7 64 bit version number > useach 5.6 ...
 q.load_remote_mapping_file     if options[:remote_map]
 q.check_id_map
 q.process_sff                  if options[:file_sff]
