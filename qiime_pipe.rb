@@ -203,7 +203,7 @@ q.dir_delete                   if options[:force]
 q.dir_create
 # q.print_qiime_config  # disabled because of useach7 64 bit version number > useach 5.6 ...
 q.load_remote_mapping_file     if options[:remote_map]
-q.check_id_map
+q.validate_mapping_file
 q.process_sff                  if options[:file_sff]
 q.process_illumina             if options[:illumina_dirs]
 q.split_libraries              if options[:file_sff]

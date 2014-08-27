@@ -243,9 +243,9 @@ module Qiime
       run "qiime_merge_fasta_files.rb -f #{fasta_files} -o #{output_file}"
     end
 
-    def check_id_map
+    def validate_mapping_file
       dir_out = "#{@options[:dir_out]}/mapping_output"
-      run "check_id_map.py -m #{@options[:file_map]} -o #{dir_out} -v"
+      run "validate_mapping_file.py -m #{@options[:file_map]} -o #{dir_out} -v"
 
       log_file = File.join(dir_out, File.basename(@options[:file_map], ".txt") + ".log")
 

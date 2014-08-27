@@ -62,7 +62,7 @@ q.dir_delete                   if options[:force]
 q.dir_create
 q.print_qiime_config
 q.merge_id_maps
-#q.check_id_map
+#q.validate_mapping_file
 q.merge_fasta_files
 q.pick_de_novo_otus
 q.print_biom_table_summary
