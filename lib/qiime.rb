@@ -1,9 +1,7 @@
 module Qiime
   require 'fileutils'
 
-  # DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/Gold/gold.fa"
-  # DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/gg_otus_4feb2011/rep_set/gg_97_otus_4feb2011.fasta"
-  DEFAULT_CHIMERA_DB   = "/home/maasha/install/QIIME1.7/data/gg_otus_4feb2011/rep_set/v4_slice_97rep.fasta"
+  DEFAULT_CHIMERA_DB   = "/home/maasha/install/src/qiime_pipe//home/maasha/install/QIIME1.8/data/gg_V4-V5_515F_806R.fasta"
   DEFAULT_BARCODE_SIZE = 10
   DEFAULT_CPUS         = 1
   DEFAULT_R_STARTER    = 'https://github.com/askerdb/amplicon_R_starter_pack.git'
@@ -575,6 +573,8 @@ module Qiime
       elsif cmd =~ /^mkdir/  # mkdir may be used multiuple times so same as above
         cmd_str = cmd
       elsif cmd =~ /^cp/
+        cmd_str = cmd
+      elsif cmd =~ /^biom/
         cmd_str = cmd
       else
         cmd_str = cmd.split(" ").first
