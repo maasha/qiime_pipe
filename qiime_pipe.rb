@@ -215,7 +215,7 @@ q.filter_fasta                 if options[:chimera]
 #q.chimera_check                if options[:chimera]
 q.pick_de_novo_otus
 if !options[:nofigures]
-  q.print_biom_table_summary
+  q.biom_summarize_table
   q.make_otu_heatmap_html
   q.make_otu_network
   q.wf_taxa_summary

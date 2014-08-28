@@ -424,10 +424,10 @@ module Qiime
       run "make_otu_table.py -i #{dir_out}/#{picking_method}_picked_otus/#{filename}_otus.txt -t #{dir_out}/#{classification_method}_assigned_taxonomy/rep_set_tax_assignments.txt -o #{dir_out}/otu_table.biom"
     end
 
-    def print_biom_table_summary
+    def biom_summarize_table
       file_biom  = "#{@options[:dir_out]}/otus/otu_table.biom"
       file_stats = "#{file_biom}.stats"
-      run "print_biom_table_summary.py -i #{file_biom} > #{file_stats}"
+      run "biom summarize-table -i #{file_biom} -o #{file_stats}"
 
       File.open(file_stats, 'r') do |ios|
         ios.each_line do |line|
