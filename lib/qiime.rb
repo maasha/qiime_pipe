@@ -127,6 +127,8 @@ module Qiime
         end
       end
 
+      raise QiimeError, "Unknown column name: #{name}" if col.nil?
+
       @mapping_table.each do |row|
         data << row[col]
       end
